@@ -28,6 +28,13 @@ func TestFilters(t *testing.T) {
 	isTrue(t, sel(func(c *config.Config) { c.Filter.Topic = "mirror" }, site(func(r *forge.Repo) { r.Topics = []string{"mirror"} })), "topic")
 }
 
+func TestFilterTopicIsNotSentToGitHub(t *testing.T) {
+	h := newHarness(t, func(c *config.Config) { c.Filter.Topic = "gitsync" })
+	h.src.set(mk(1, "site", func(r *forge.Repo) { r.Topics = []string{"gitsync", "go"} }))
+	h.run(false)
+	eq(t, h.tgt.repos["alice-gh/site"].Topics, "[go]")
+}
+
 func TestExcludedIsLeftAlone(t *testing.T) {
 	h := newHarness(t, nil)
 	h.src.set(mk(1, "site"))

@@ -53,10 +53,17 @@ func (e *Engine) syncRepo(repo *forge.Repo, job *Job) (err error) {
 		}
 	}()
 
-	if !s.skipPush() {
+	skip := s.skipPush()
+	if err := s.beforePush(skip); err != nil {
+		return err
+	}
+	if !skip {
 		if err := s.push(); err != nil {
 			return err
 		}
+	}
+	if err := s.afterPush(skip); err != nil {
+		return err
 	}
 	s.finish()
 	return nil
@@ -90,11 +97,15 @@ func (s *repoSync) resolve() error {
 		}
 		return nil
 	}
-	created, err := s.e.tgt.Create(s.owner, s.name, "", "")
+	desc, home := "", ""
+	if sy.Metadata {
+		desc, home = describeRepo(s.repo), homepage(s.repo)
+	}
+	created, err := s.e.tgt.Create(s.owner, s.name, desc, home)
 	if err != nil {
 		return err
 	}
-	snap := github.Snap{Private: true}
+	snap := github.Snap{Private: true, Description: desc, Homepage: home}
 	if created != nil {
 		snap = github.Snapshot(created)
 	}
@@ -104,7 +115,11 @@ func (s *repoSync) resolve() error {
 }
 
 func (s *repoSync) skipPush() bool {
-	return s.repo.Empty
+	sy := s.cfg.Sync
+	unchanged := s.managed && s.repo.Updated != "" && s.ent.Updated == s.repo.Updated && s.ent.LastError == ""
+	return s.repo.Empty ||
+		(s.cur.Archived && !sy.Archived) ||
+		(s.cur.Archived && s.repo.Archived && unchanged)
 }
 
 func (s *repoSync) push() error {
