@@ -35,6 +35,9 @@ func (e *Engine) syncRepo(repo *forge.Repo, job *Job) (err error) {
 	s.ent, s.has = e.state.get(repo.ID)
 	s.managed = s.has && s.ent.Managed
 
+	if err := s.rename(); err != nil {
+		return err
+	}
 	if err := s.resolve(); err != nil {
 		return err
 	}
