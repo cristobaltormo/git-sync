@@ -31,7 +31,9 @@ func (e *Engine) Reconcile(verify bool, why string) bool {
 
 func (e *Engine) reconcileRepos(repos []*forge.Repo, verify bool, why string) {
 	now := time.Now().Unix()
+	seen := map[int64]bool{}
 	for _, repo := range repos {
+		seen[repo.ID] = true
 		ent, has := e.state.get(repo.ID)
 		if ok, _ := e.Selected(repo); !ok {
 			if has && ent.Managed && !ent.Excluded {
@@ -52,4 +54,29 @@ func (e *Engine) reconcileRepos(repos []*forge.Repo, verify bool, why string) {
 			e.Enqueue(&Job{Key: key(repo.ID), Repo: repo, Why: w, Verify: verify})
 		}
 	}
+	entries := e.state.all()
+	managed := 0
+	for _, x := range entries {
+		if x.Managed {
+			managed++
+		}
+	}
+	if len(repos) == 0 && managed > 1 {
+		logx.Warnf("the source returned no repos at all; not treating that as a mass deletion")
+		return
+	}
+	for id, x := range entries {
+		if !seen[id] && !x.Excluded {
+			e.handleMissing(id, x)
+		}
+	}
+}
+
+func (e *Engine) HasMissing() bool {
+	for _, x := range e.state.all() {
+		if x.MissingSince != 0 {
+			return true
+		}
+	}
+	return false
 }
