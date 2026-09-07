@@ -65,6 +65,9 @@ func (e *Engine) syncRepo(repo *forge.Repo, job *Job) (err error) {
 	if err := s.afterPush(skip); err != nil {
 		return err
 	}
+	if e.HookMode() == "repo" {
+		e.repoHook(repo, s.ent.Hook)
+	}
 	s.finish()
 	return nil
 }

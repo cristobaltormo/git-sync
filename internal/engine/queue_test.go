@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/cristobaltormo/git-sync/internal/forge"
 )
 
 func TestCoalescing(t *testing.T) {
@@ -35,4 +37,18 @@ func TestWorkersEndToEnd(t *testing.T) {
 	isTrue(t, h.e.Drain(10*time.Second), "queue did not drain")
 	h.e.Shutdown()
 	eq(t, len(h.mir.calls), 6)
+}
+
+func TestWebhookBurstRunsOnce(t *testing.T) {
+	h := newHarness(t, nil)
+	h.src.set(mk(1, "site"))
+	h.e.Start()
+	start := time.Now()
+	ev := &forge.Event{Kind: forge.Changed, Owner: "alice", Name: "site", ID: 1}
+	h.e.HandleEvent(ev)
+	h.e.HandleEvent(ev)
+	isTrue(t, h.e.Drain(5*time.Second), "queue did not drain")
+	h.e.Shutdown()
+	isTrue(t, time.Since(start) >= hookDelay, "the job must wait for the debounce window")
+	eq(t, len(h.mir.calls), 1)
 }

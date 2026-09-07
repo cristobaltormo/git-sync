@@ -1,6 +1,10 @@
 package engine
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
+	"fmt"
+	"sort"
 	"time"
 
 	"github.com/cristobaltormo/git-sync/internal/forge"
@@ -17,6 +21,17 @@ func (e *Engine) ListAll() ([]*forge.Repo, error) {
 		all = append(all, repos...)
 	}
 	return all, nil
+}
+
+// built from the listing: Forgejo bumps updated_at on every edit, Gitea only on some
+func fingerprint(repos []*forge.Repo) string {
+	sorted := append([]*forge.Repo(nil), repos...)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].ID < sorted[j].ID })
+	h := sha1.New()
+	for _, r := range sorted {
+		fmt.Fprintf(h, "%d|%s|%s|%t|%t|%t\n", r.ID, r.Sig(), r.Updated, r.Empty, r.Mirror, r.Fork)
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (e *Engine) Reconcile(verify bool, why string) bool {
@@ -70,6 +85,19 @@ func (e *Engine) reconcileRepos(repos []*forge.Repo, verify bool, why string) {
 			e.handleMissing(id, x)
 		}
 	}
+}
+
+func (e *Engine) nextRetry() (time.Time, bool) {
+	var best int64
+	for _, x := range e.state.all() {
+		if x.LastError != "" && x.RetryAt > 0 && (best == 0 || x.RetryAt < best) {
+			best = x.RetryAt
+		}
+	}
+	if best == 0 {
+		return time.Time{}, false
+	}
+	return time.Unix(best, 0), true
 }
 
 func (e *Engine) HasMissing() bool {
