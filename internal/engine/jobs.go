@@ -3,8 +3,10 @@ package engine
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/cristobaltormo/git-sync/internal/httpx"
 	"github.com/cristobaltormo/git-sync/internal/logx"
 )
 
@@ -39,6 +41,15 @@ func (e *Engine) runJob(job *Job) error {
 	return e.syncRepo(repo, job)
 }
 
+// transient answers while GitHub applies a visibility change
+func isBusy(err error) bool {
+	var ae *httpx.APIError
+	if errors.As(err, &ae) && ae.Status == 422 && strings.Contains(strings.ToLower(ae.Msg), "in progress") {
+		return true
+	}
+	return strings.Contains(err.Error(), "is disabled")
+}
+
 func (e *Engine) recordFailure(job *Job, err error) {
 	var id int64
 	name := job.Owner + "/" + job.Name
@@ -49,6 +60,7 @@ func (e *Engine) recordFailure(job *Job, err error) {
 	}
 	var blocked *blockedError
 	isBlocked := errors.As(err, &blocked)
+	busy := isBusy(err)
 	if id == 0 {
 		logx.Errorf("%s: %v", name, err)
 		return
@@ -63,12 +75,16 @@ func (e *Engine) recordFailure(job *Job, err error) {
 		attempts = x.Attempts
 		delay := 10 * time.Minute
 		switch {
+		case busy:
+			delay = min(10*time.Second<<min(x.Attempts-1, 3), time.Minute)
 		case !isBlocked:
 			delay = backoff[min(x.Attempts-1, len(backoff)-1)]
 		}
 		x.RetryAt = time.Now().Add(delay).Unix()
 	})
 	switch {
+	case busy:
+		logx.Warnf("%s: GitHub is still busy with a previous change, will retry shortly (%v)", name, err)
 	case isBlocked && attempts > 1:
 		logx.Debugf("%s: %v", name, err)
 	case isBlocked:
