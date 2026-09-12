@@ -21,7 +21,10 @@ const usage = `gitsync %s: mirror repos from a self-hosted git server to GitHub,
 
 Usage: gitsync [-c config.toml] <command>
 
+  check      test the config, tokens and permissions
   run        run the daemon (--dry-run to only log what would happen)
+  sync       mirror everything once and exit (owner/name ... for just some)
+  status     show what has been synced
   version    print the version
 
 The config is looked for in ./config.toml and /etc/gitsync/config.toml.
@@ -30,7 +33,7 @@ The config is looked for in ./config.toml and /etc/gitsync/config.toml.
 type command func(cfgPath string, args []string) (int, error)
 
 var commands = map[string]command{
-	"run": cmdRun,
+	"run": cmdRun, "sync": cmdSync, "check": cmdCheck, "status": cmdStatus,
 }
 
 func Run(version string, args []string) int {
