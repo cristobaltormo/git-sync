@@ -21,11 +21,14 @@ const usage = `gitsync %s: mirror repos from a self-hosted git server to GitHub,
 
 Usage: gitsync [-c config.toml] <command>
 
+  init       write a config file, asking a few questions
   check      test the config, tokens and permissions
   run        run the daemon (--dry-run to only log what would happen)
   sync       mirror everything once and exit (owner/name ... for just some)
   status     show what has been synced
   hooks      create the webhooks on the git server (--force, --remove)
+  install    install as a systemd service
+  uninstall  remove the systemd service
   version    print the version
 
 The config is looked for in ./config.toml and /etc/gitsync/config.toml.
@@ -35,7 +38,7 @@ type command func(cfgPath string, args []string) (int, error)
 
 var commands = map[string]command{
 	"run": cmdRun, "sync": cmdSync, "check": cmdCheck, "status": cmdStatus,
-	"hooks": cmdHooks,
+	"hooks": cmdHooks, "init": cmdInit, "install": cmdInstall, "uninstall": cmdUninstall,
 }
 
 func Run(version string, args []string) int {
