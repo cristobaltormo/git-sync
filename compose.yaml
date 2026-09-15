@@ -1,0 +1,18 @@
+# Put gitsync on the same network as your git server and, in config.toml:
+#   [listen]  host = "0.0.0.0"  public_url = "http://gitsync:9001/hook"
+#   [source]  url = "http://forgejo:3000"
+services:
+  gitsync:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ./config.toml:/config/config.toml:ro
+      - data:/data
+    # environment:
+    #   GITSYNC_SOURCE_TOKEN: ...
+    #   GITSYNC_GITHUB_TOKEN: ...
+    #   GITSYNC_WEBHOOK_SECRET: ...
+    # networks: [git]
+
+volumes:
+  data:
