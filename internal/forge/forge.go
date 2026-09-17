@@ -87,6 +87,8 @@ func New(cfg *config.Config) (Provider, error) {
 	switch cfg.Source.Type {
 	case "forgejo", "gitea", "codeberg", "gogs":
 		return newGitea(cfg), nil
+	case "gitlab":
+		return newGitLab(cfg), nil
 	}
 	return nil, fmt.Errorf("unsupported source type %q", cfg.Source.Type)
 }
