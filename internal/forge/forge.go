@@ -31,7 +31,12 @@ type Repo struct {
 	Updated       string
 }
 
-func (r *Repo) Full() string { return r.Owner + "/" + r.Name }
+func (r *Repo) Full() string {
+	if r.Owner == OneDevRoot {
+		return r.Name
+	}
+	return r.Owner + "/" + r.Name
+}
 
 func (r *Repo) Sig() string {
 	topics := append([]string(nil), r.Topics...)
@@ -91,6 +96,8 @@ func New(cfg *config.Config) (Provider, error) {
 		return newGitLab(cfg), nil
 	case "gitbucket":
 		return newGitBucket(cfg), nil
+	case "onedev":
+		return newOneDev(cfg), nil
 	}
 	return nil, fmt.Errorf("unsupported source type %q", cfg.Source.Type)
 }
