@@ -89,6 +89,8 @@ func New(cfg *config.Config) (Provider, error) {
 		return newGitea(cfg), nil
 	case "gitlab":
 		return newGitLab(cfg), nil
+	case "gitbucket":
+		return newGitBucket(cfg), nil
 	}
 	return nil, fmt.Errorf("unsupported source type %q", cfg.Source.Type)
 }
