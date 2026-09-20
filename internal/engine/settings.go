@@ -46,7 +46,8 @@ func (s *repoSync) afterPush(skipped bool) error {
 			post["homepage"] = h
 		}
 	}
-	if sy.DefaultBranch && s.repo.DefaultBranch != "" && !s.repo.Empty && s.cur.DefaultBranch != s.repo.DefaultBranch {
+	if sy.DefaultBranch && s.repo.DefaultBranch != "" && !s.repo.Empty && s.cur.DefaultBranch != s.repo.DefaultBranch &&
+		s.ent.RefusedBranch != s.repo.DefaultBranch {
 		post["default_branch"] = s.repo.DefaultBranch
 	}
 	if len(post) > 0 {
@@ -83,7 +84,10 @@ func (s *repoSync) patchPost(post map[string]any) error {
 	err := s.e.tgt.Patch(s.owner, s.name, post)
 	var ae *httpx.APIError
 	if _, hasBranch := post["default_branch"]; err != nil && hasBranch && errors.As(err, &ae) && ae.Status == 422 {
-		logx.Warnf("%s: GitHub refused the default branch '%s'", s.repo.Full(), s.repo.DefaultBranch)
+		logx.Warnf("%s: GitHub refused the default branch '%s', it will not be tried again", s.repo.Full(), s.repo.DefaultBranch)
+		branch := s.repo.DefaultBranch
+		s.ent.RefusedBranch = branch
+		s.e.state.update(s.repo.ID, false, func(x *Entry) { x.RefusedBranch = branch })
 		delete(post, "default_branch")
 		err = nil
 		if len(post) > 0 {

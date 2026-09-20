@@ -124,3 +124,21 @@ func TestUnmappedOwnerIgnored(t *testing.T) {
 	h.run(false)
 	eq(t, len(h.tgt.calls), 0)
 }
+
+func TestRefusedDefaultBranchIsTriedOnce(t *testing.T) {
+	h := newHarness(t, nil)
+	h.tgt.refuseBranch = true
+	h.src.set(mk(1, "site", func(r *forge.Repo) { r.DefaultBranch = "master" }))
+	h.run(false)
+	h.src.set(mk(1, "site", func(r *forge.Repo) { r.DefaultBranch = "master" }, upd("2026-02-01T00:00:00Z")))
+	h.run(false)
+	tries := 0
+	for _, c := range h.tgt.calls {
+		if strings.Contains(c, "default_branch") {
+			tries++
+		}
+	}
+	eq(t, tries, 1)
+	x, _ := h.e.state.get(1)
+	eq(t, x.LastError, "")
+}
