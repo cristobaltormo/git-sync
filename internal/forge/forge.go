@@ -98,6 +98,10 @@ func New(cfg *config.Config) (Provider, error) {
 		return newGitBucket(cfg), nil
 	case "onedev":
 		return newOneDev(cfg), nil
+	case "bitbucket-cloud":
+		return newBitbucketCloud(cfg), nil
+	case "bitbucket-server":
+		return newBitbucketServer(cfg), nil
 	}
 	return nil, fmt.Errorf("unsupported source type %q", cfg.Source.Type)
 }
