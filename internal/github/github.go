@@ -175,6 +175,10 @@ func (c *Client) Get(owner, name string) (*Repo, error) {
 	if err := r.Decode(&x); err != nil {
 		return nil, err
 	}
+	// renamed and deleted repos leave a redirect from their old name
+	if !strings.EqualFold(x.Name, name) || (x.Owner.Login != "" && !strings.EqualFold(x.Owner.Login, owner)) {
+		return nil, nil
+	}
 	return &x, nil
 }
 

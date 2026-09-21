@@ -85,6 +85,10 @@ func TestGet(t *testing.T) {
 		switch r.URL.Path {
 		case "/repos/o/missing":
 			w.WriteHeader(404)
+		case "/repos/o/old-name":
+			io.WriteString(w, `{"name":"new-name","owner":{"login":"o"}}`)
+		case "/repos/o/moved":
+			io.WriteString(w, `{"name":"moved","owner":{"login":"someone-else"}}`)
 		case "/repos/o/forbidden":
 			w.WriteHeader(403)
 			io.WriteString(w, `{"message":"nope"}`)
@@ -94,6 +98,12 @@ func TestGet(t *testing.T) {
 	})
 	if r, err := c.Get("o", "missing"); r != nil || err != nil {
 		t.Fatalf("404 must be (nil, nil): %v %v", r, err)
+	}
+	if r, err := c.Get("o", "old-name"); r != nil || err != nil {
+		t.Fatalf("a redirect from a renamed repo is not the repo: %v %v", r, err)
+	}
+	if r, err := c.Get("o", "moved"); r != nil || err != nil {
+		t.Fatalf("a redirect to another owner is not the repo: %v %v", r, err)
 	}
 	if _, err := c.Get("o", "forbidden"); err == nil || !strings.Contains(err.Error(), "403") {
 		t.Fatalf("403 must be an error: %v", err)
