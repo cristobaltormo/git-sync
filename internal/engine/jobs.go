@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cristobaltormo/git-sync/internal/forge"
 	"github.com/cristobaltormo/git-sync/internal/httpx"
 	"github.com/cristobaltormo/git-sync/internal/logx"
 )
@@ -38,7 +39,18 @@ func (e *Engine) runJob(job *Job) error {
 		}
 		return nil
 	}
-	return e.syncRepo(repo, job)
+	err := e.syncRepo(repo, job)
+	if err != nil && e.vanished(repo) {
+		logx.Infof("%s was removed from the source while it was being synced", repo.Full())
+		e.Wake()
+		return nil
+	}
+	return err
+}
+
+func (e *Engine) vanished(r *forge.Repo) bool {
+	got, err := e.src.Get(r.Owner, r.Name)
+	return err == nil && got == nil
 }
 
 // transient answers while GitHub applies a visibility change

@@ -8,6 +8,7 @@ import (
 	"github.com/cristobaltormo/git-sync/internal/config"
 	"github.com/cristobaltormo/git-sync/internal/forge"
 	"github.com/cristobaltormo/git-sync/internal/github"
+	"github.com/cristobaltormo/git-sync/internal/mirror"
 )
 
 func TestNewPrivateRepo(t *testing.T) {
@@ -141,4 +142,28 @@ func TestRefusedDefaultBranchIsTriedOnce(t *testing.T) {
 	eq(t, tries, 1)
 	x, _ := h.e.state.get(1)
 	eq(t, x.LastError, "")
+}
+
+type vanishingMirror struct {
+	fakeMirror
+	src *fakeSource
+}
+
+func (m *vanishingMirror) Mirror(r *forge.Repo, o, n, last string) (mirror.Result, error) {
+	delete(m.src.repos, r.ID)
+	return mirror.Result{}, fmt.Errorf("git fetch failed: 404")
+}
+
+func TestRepoDeletedMidSyncIsNotAFailure(t *testing.T) {
+	h := newHarness(t, nil)
+	h.src.set(mk(1, "site"))
+	h.e.mir = &vanishingMirror{src: h.src}
+	h.run(false)
+	x, _ := h.e.state.get(1)
+	eq(t, x.LastError, "")
+	select {
+	case <-h.e.wake:
+	default:
+		t.Fatal("the poller should be told to look at the deletion")
+	}
 }
