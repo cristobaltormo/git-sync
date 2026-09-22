@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cristobaltormo/git-sync/internal/config"
 	"github.com/cristobaltormo/git-sync/internal/forge"
@@ -126,6 +127,24 @@ func TestUnmappedOwnerIgnored(t *testing.T) {
 	eq(t, len(h.tgt.calls), 0)
 }
 
+func TestVerifySkipsPushWhenNothingChanged(t *testing.T) {
+	h := synced(t, nil)
+	h.mir.calls = nil
+	h.run(true)
+	eq(t, len(h.mir.calls), 0)
+	h.src.set(mk(1, "site", upd("2026-05-01T00:00:00Z")))
+	h.run(true)
+	eq(t, len(h.mir.calls), 1)
+	h.mir.calls = nil
+	h.e.state.update(1, false, func(x *Entry) { x.LastPush = time.Now().Add(-25 * time.Hour).Unix() })
+	h.run(true)
+	eq(t, len(h.mir.calls), 1)
+	h.mir.calls = nil
+	h.e.Enqueue(&Job{Key: "1", Repo: mk(1, "site", upd("2026-05-01T00:00:00Z")), Why: "sync", Verify: true, Force: true})
+	h.pump()
+	eq(t, len(h.mir.calls), 1)
+}
+
 func TestRefusedDefaultBranchIsTriedOnce(t *testing.T) {
 	h := newHarness(t, nil)
 	h.tgt.refuseBranch = true
@@ -166,4 +185,18 @@ func TestRepoDeletedMidSyncIsNotAFailure(t *testing.T) {
 	default:
 		t.Fatal("the poller should be told to look at the deletion")
 	}
+}
+
+func TestPushIsSkippedOnlyWhenRefsAreKnownAndNothingForcesIt(t *testing.T) {
+	h := synced(t, nil)
+	h.mir.lasts = nil
+	h.src.set(mk(1, "site", upd("2026-04-01T00:00:00Z")))
+	h.run(false)
+	eq(t, h.mir.lasts[len(h.mir.lasts)-1], "refs-2026-01-01T00:00:00Z")
+	h.src.set(mk(1, "site", upd("2026-05-01T00:00:00Z")))
+	h.run(true)
+	eq(t, h.mir.lasts[len(h.mir.lasts)-1], "")
+	h.e.Enqueue(&Job{Key: "1", Repo: mk(1, "site", upd("2026-06-01T00:00:00Z")), Why: "sync", Force: true})
+	h.pump()
+	eq(t, h.mir.lasts[len(h.mir.lasts)-1], "")
 }

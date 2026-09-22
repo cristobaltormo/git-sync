@@ -120,9 +120,11 @@ func (s *repoSync) resolve() error {
 func (s *repoSync) skipPush() bool {
 	sy := s.cfg.Sync
 	unchanged := s.managed && s.repo.Updated != "" && s.ent.Updated == s.repo.Updated && s.ent.LastError == ""
+	recent := s.ent.LastPush > 0 && time.Since(time.Unix(s.ent.LastPush, 0)) < 24*time.Hour
 	return s.repo.Empty ||
 		(s.cur.Archived && !sy.Archived) ||
-		(s.cur.Archived && s.repo.Archived && unchanged)
+		(s.cur.Archived && s.repo.Archived && unchanged) ||
+		(s.job.Verify && !s.job.Force && unchanged && recent)
 }
 
 func (s *repoSync) push() error {
