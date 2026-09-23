@@ -1,0 +1,140 @@
+# gitsync: every option with its default.
+#
+# You only need [source], [github], [accounts] and listen.secret. `gitsync init`
+# writes a minimal file. Secrets can also come from a file (token_file,
+# secret_file) or from the environment (GITSYNC_SOURCE_TOKEN,
+# GITSYNC_GITHUB_TOKEN, GITSYNC_WEBHOOK_SECRET); the environment wins over the
+# file and the file over the value written here. Keep this file readable only by
+# the user that runs gitsync.
+
+[source]
+# forgejo, gitea, gogs, codeberg, gitlab, gitbucket, onedev,
+# bitbucket-cloud (experimental), bitbucket-server (experimental)
+type = "forgejo"
+# Base URL of the server as this machine reaches it. It is used for the API and
+# for git, so http://127.0.0.1:3000 is fine when it runs on the same host.
+# Optional for codeberg, gitlab and bitbucket-cloud.
+url = "https://git.example.com"
+# API token of the source server. Read access to the repositories is enough to
+# mirror; webhooks additionally need write access to them, and an admin token
+# lets Forgejo, Gitea and GitLab use one system-wide webhook.
+token = ""
+# token_file = "/etc/gitsync/source.token"
+# Only used by providers that need a user name next to the token.
+# user = ""
+
+[github]
+# Classic token with the scopes "repo" and "delete_repo" (the second one only if
+# on_delete = "delete"). Fine-grained tokens work too: they need Administration
+# and Contents write on the target repos.
+token = ""
+# token_file = "/etc/gitsync/github.token"
+# Only change these for GitHub Enterprise Server.
+api_url = "https://api.github.com"
+git_url = "https://github.com"
+
+# Source owner = GitHub owner. Both sides can be a user or an organization.
+# A token can only create repos under its own user or under organizations it
+# belongs to. Owners are user or organization names on Forgejo, Gitea, Gogs and
+# GitBucket, namespaces on GitLab (group/subgroup), workspaces on Bitbucket
+# Cloud, project keys on Bitbucket Server, and the parent project path on OneDev
+# ("/" for projects at the root).
+[accounts]
+# alice = "alice"
+# my-org = "my-github-org"
+
+[listen]
+# Where the webhook listener binds. Keep it on localhost when the git server
+# runs on the same machine.
+host = "127.0.0.1"
+port = 9001
+# Shared secret. The git server signs every webhook with it and requests that do
+# not carry it are dropped. `gitsync init` generates one.
+secret = ""
+# secret_file = "/etc/gitsync/webhook.secret"
+# URL the git server should call. Default: http://<host>:<port>/hook, with
+# 127.0.0.1 when host is 0.0.0.0. Set it when the git server reaches this machine
+# under another name, for example in Docker: "http://gitsync:9001/hook".
+public_url = ""
+
+[sync]
+# Seconds between polls of the git server. Each poll lists the repos and compares
+# them with the last listing (about 3 KB per repo). It is what notices
+# visibility, renames, descriptions, archiving and deletions, which webhooks
+# never announce, and it also catches pushes if a webhook gets lost. 0 turns
+# polling off: only webhooks remain, plus a safety listing every 5 minutes.
+poll_interval = 5
+# Seconds between full checks against GitHub (compare each repo with what is
+# really there and push again those that changed or were not pushed in a day).
+# 0 disables them.
+verify_interval = 3600
+# Repos synced in parallel. Each one is a git fetch plus a git push.
+workers = 2
+
+# Make GitHub public or private follow the source. New repos are always created
+# private and opened only after their content has been pushed. Private repos on
+# the source never become public.
+visibility = true
+# Copy description, website and topics.
+metadata = true
+# Follow the default branch.
+default_branch = true
+# Follow the archived flag.
+archived = true
+# Mirror tags as well as branches.
+tags = true
+
+# What to do on GitHub when a repo is removed from the source:
+#   "delete"  delete it (needs the delete_repo scope)
+#   "archive" archive it and keep the code
+#   "ignore"  leave it as it is
+on_delete = "delete"
+# A removal is only acted on after the repo has been missing for this many
+# seconds and asking the server for it directly confirms it is gone.
+delete_grace = 10
+# Never delete more than this many repos per hour. 0 means no limit.
+delete_limit = 5
+
+# A repo that already exists on GitHub but was not created by gitsync is left
+# alone and reported. Turning this on lets gitsync take it over, which means the
+# GitHub copy is overwritten to match the source (force push, branches that only
+# exist on GitHub are removed).
+adopt_existing = false
+
+# Log what would happen and change nothing (same as `gitsync run --dry-run`).
+dry_run = false
+# Seconds before a single git command is given up on. 0 means no limit.
+git_timeout = 1800
+
+[filter]
+# Glob patterns matched against "owner/name", or against the name alone when the
+# pattern has no slash. An empty include list means everything.
+include = []
+exclude = []
+# Only sync repos that carry this topic on the source, so you can decide from the
+# server's own UI. The topic itself is not copied to GitHub.
+topic = ""
+skip_forks = false
+# Repos that are pull mirrors of something else (Forgejo, Gitea, GitLab).
+skip_mirrors = true
+skip_archived = false
+# Sync public repos only.
+skip_private = false
+
+[hooks]
+# auto    one system-wide webhook when the token is an admin (Forgejo, Gitea,
+#         GitLab), otherwise one per repo, created when the repo is first synced
+# system  only the system-wide webhook
+# repo    only per-repo webhooks
+# none    do not touch the git server; the poll alone catches everything, a push
+#         just takes up to poll_interval seconds longer
+mode = "auto"
+
+[paths]
+# Where state.json and the git mirrors live. Default: /var/lib/gitsync as root
+# (or $STATE_DIRECTORY under systemd), ~/.local/state/gitsync otherwise.
+state_dir = ""
+
+[log]
+# debug, info, warn or error
+level = "info"
