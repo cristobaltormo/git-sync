@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -137,6 +138,11 @@ func DefaultStateDir() string {
 	if d := os.Getenv("STATE_DIRECTORY"); d != "" {
 		return strings.Split(d, ":")[0]
 	}
+	if runtime.GOOS == "windows" {
+		if d := os.Getenv("LOCALAPPDATA"); d != "" {
+			return filepath.Join(d, "gitsync")
+		}
+	}
 	if os.Geteuid() == 0 {
 		return "/var/lib/gitsync"
 	}
@@ -155,7 +161,7 @@ func fileExists(p string) bool {
 
 func Find(explicit string) string {
 	env := os.Getenv("GITSYNC_CONFIG")
-	for _, c := range []string{explicit, env, "config.toml", "/etc/gitsync/config.toml"} {
+	for _, c := range []string{explicit, env, "config.toml", SystemConfig()} {
 		if c != "" && fileExists(c) {
 			return c
 		}
@@ -165,6 +171,13 @@ func Find(explicit string) string {
 	}
 	if env != "" {
 		return env
+	}
+	return SystemConfig()
+}
+
+func SystemConfig() string {
+	if runtime.GOOS == "windows" {
+		return filepath.Join(os.Getenv("ProgramData"), "gitsync", "config.toml")
 	}
 	return "/etc/gitsync/config.toml"
 }

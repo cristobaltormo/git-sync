@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/cristobaltormo/git-sync/internal/config"
@@ -54,8 +53,8 @@ func (g *Git) Environment() ([]string, error) {
 	ghScope := strings.TrimRight(g.cfg.GitHub.GitURL, "/") + "/"
 	return append(os.Environ(),
 		"GIT_TERMINAL_PROMPT=0",
-		"GIT_CONFIG_GLOBAL=/dev/null",
-		"GIT_CONFIG_SYSTEM=/dev/null",
+		"GIT_CONFIG_GLOBAL="+os.DevNull,
+		"GIT_CONFIG_SYSTEM="+os.DevNull,
 		"GIT_CONFIG_COUNT=2",
 		"GIT_CONFIG_KEY_0=http."+g.cfg.SourceScope()+".extraheader",
 		"GIT_CONFIG_VALUE_0="+header,
@@ -118,8 +117,8 @@ func (g *Git) run(env []string, dir string, args ...string) (string, error) {
 	}
 	cmd := exec.CommandContext(ctx, "git", append(append([]string{}, g.opts...), args...)...)
 	cmd.Dir, cmd.Env, cmd.WaitDelay = dir, env, 5*time.Second
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
+	cmd.SysProcAttr = groupAttr()
+	cmd.Cancel = func() error { return killTree(cmd.Process.Pid) }
 	var out bytes.Buffer
 	errs := &tail{last: time.Now()}
 	cmd.Stdout, cmd.Stderr = &out, errs
@@ -141,7 +140,7 @@ func (g *Git) run(env []string, dir string, args ...string) (string, error) {
 			case <-tick.C:
 				if errs.silentFor() > g.stall {
 					stalled.Store(true)
-					syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+					killTree(cmd.Process.Pid)
 					return
 				}
 			}

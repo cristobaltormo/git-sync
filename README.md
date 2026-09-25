@@ -60,14 +60,21 @@ curl -L -o gitsync https://github.com/cristobaltormo/git-sync/releases/latest/do
 chmod +x gitsync
 ```
 
-There are builds for linux amd64, arm64 and armv7 and for macOS. To build it
-yourself you need Go 1.24 or newer:
+On Windows, in PowerShell:
+
+```
+Invoke-WebRequest https://github.com/cristobaltormo/git-sync/releases/latest/download/gitsync-windows-amd64.exe -OutFile gitsync.exe
+```
+
+There are builds for Linux (amd64, arm64, armv7), macOS (Intel and Apple
+silicon) and Windows (amd64 and arm64). To build it yourself you need Go 1.24 or
+newer:
 
 ```
 go install github.com/cristobaltormo/git-sync/cmd/gitsync@latest
 ```
 
-`git` 2.32 or newer has to be installed on the machine.
+`git` 2.32 or newer has to be installed on the machine ([Git for Windows](https://gitforwindows.org) on Windows).
 
 ## Set it up
 
@@ -88,6 +95,17 @@ This creates a `gitsync` user, copies the binary to `/usr/local/bin` and the
 config to `/etc/gitsync/config.toml`, and starts a systemd service. Logs are in
 `journalctl -u gitsync -f`. After editing the config, `systemctl reload gitsync`
 applies it without a restart.
+
+On Windows, run `gitsync install` from a PowerShell opened as administrator. It
+copies the binary to `C:\Program Files\gitsync` and the config to
+`C:\ProgramData\gitsync`, restricted to administrators, and registers a
+scheduled task that starts with Windows, runs as SYSTEM and is restarted if it
+fails. State and mirrors are in `C:\ProgramData\gitsync\state`. `kill -HUP`
+does not exist there: restart the task after editing the config with
+`schtasks /End /TN gitsync` and `schtasks /Run /TN gitsync`.
+
+On macOS there is no installer: keep `gitsync run` alive with launchd, or use
+Docker.
 
 ### Tokens
 
@@ -194,7 +212,7 @@ from the environment instead of the file: `GITSYNC_SOURCE_TOKEN`,
 | `gitsync sync [owner/name ...]` | mirror once and exit, everything or just some repos |
 | `gitsync status` | each repo, where it goes, when it last synced, last error |
 | `gitsync hooks [--force] [--remove]` | create, rewrite or remove the webhooks |
-| `gitsync install` / `uninstall` | systemd service |
+| `gitsync install` / `uninstall` | systemd service on Linux, scheduled task on Windows |
 
 `-c file.toml` picks another config. Without it, `./config.toml` and then
 `/etc/gitsync/config.toml` are tried. `kill -HUP` reloads the config.
