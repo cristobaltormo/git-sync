@@ -2,10 +2,12 @@ package mirror
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -59,24 +61,69 @@ func TestCredentialsAreScopedHeaders(t *testing.T) {
 	}
 }
 
-func fakeGit(t *testing.T, script string) {
+func TestMain(m *testing.M) {
+	if mode := os.Getenv("GITSYNC_FAKE_GIT"); mode != "" {
+		os.Exit(fakeGitMain(mode))
+	}
+	os.Exit(m.Run())
+}
+
+func fakeGitMain(mode string) int {
+	switch mode {
+	case "silent":
+		time.Sleep(30 * time.Second)
+	case "busy":
+		for i := 1; i <= 8; i++ {
+			fmt.Fprintf(os.Stderr, "Writing objects: %d\n", i)
+			time.Sleep(100 * time.Millisecond)
+		}
+		fmt.Println("done")
+	case "once":
+		marker := os.Getenv("GITSYNC_FAKE_MARKER")
+		if _, err := os.Stat(marker); err == nil {
+			fmt.Println("ok")
+			return 0
+		}
+		os.WriteFile(marker, nil, 0o600)
+		time.Sleep(30 * time.Second)
+	case "fail":
+		fmt.Fprintln(os.Stderr, "one\ntwo\nfatal: nope")
+		return 1
+	}
+	return 0
+}
+
+func fakeGit(t *testing.T, mode string) {
 	t.Helper()
-	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "git"), []byte("#!/bin/sh\n"+script), 0o755); err != nil {
+	self, err := os.Executable()
+	if err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("PATH", dir+":"+os.Getenv("PATH"))
+	blob, err := os.ReadFile(self)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	name := "git"
+	if runtime.GOOS == "windows" {
+		name = "git.exe"
+	}
+	if err := os.WriteFile(filepath.Join(dir, name), blob, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("GITSYNC_FAKE_GIT", mode)
 }
 
 func testGit() *Git {
 	cfg := config.Default()
 	g := New(cfg, source{}, false)
-	g.stall = 300 * time.Millisecond
+	g.stall = 1500 * time.Millisecond
 	return g
 }
 
 func TestSilentGitIsKilled(t *testing.T) {
-	fakeGit(t, "sleep 30\n")
+	fakeGit(t, "silent")
 	start := time.Now()
 	_, err := testGit().run(os.Environ(), "", "push")
 	if !errors.Is(err, errStalled) || time.Since(start) > 5*time.Second {
@@ -85,7 +132,7 @@ func TestSilentGitIsKilled(t *testing.T) {
 }
 
 func TestBusyGitIsLeftAlone(t *testing.T) {
-	fakeGit(t, "for i in 1 2 3 4 5 6 7 8; do echo \"Writing objects: $i\" >&2; sleep 0.1; done\necho done\n")
+	fakeGit(t, "busy")
 	out, err := testGit().run(os.Environ(), "", "push")
 	if err != nil || strings.TrimSpace(out) != "done" {
 		t.Fatalf("a git that reports progress is fine: %q %v", out, err)
@@ -94,7 +141,8 @@ func TestBusyGitIsLeftAlone(t *testing.T) {
 
 func TestStalledGitIsRetried(t *testing.T) {
 	marker := filepath.Join(t.TempDir(), "seen")
-	fakeGit(t, "if [ -e "+marker+" ]; then echo ok; else touch "+marker+"; sleep 30; fi\n")
+	t.Setenv("GITSYNC_FAKE_MARKER", marker)
+	fakeGit(t, "once")
 	out, err := testGit().attempt(os.Environ(), "", "push")
 	if err != nil || strings.TrimSpace(out) != "ok" {
 		t.Fatalf("the second try should succeed: %q %v", out, err)
@@ -102,7 +150,7 @@ func TestStalledGitIsRetried(t *testing.T) {
 }
 
 func TestGitFailureShowsItsLastLines(t *testing.T) {
-	fakeGit(t, "echo one >&2\necho two >&2\necho fatal: nope >&2\nexit 1\n")
+	fakeGit(t, "fail")
 	_, err := testGit().run(os.Environ(), "", "fetch")
 	if err == nil || !strings.Contains(err.Error(), "fatal: nope") {
 		t.Fatalf("got %v", err)

@@ -83,7 +83,7 @@ func TestMissingFileSuggestsInit(t *testing.T) {
 func TestSecretsFromFileAndEnvironment(t *testing.T) {
 	tokFile := filepath.Join(t.TempDir(), "tok")
 	os.WriteFile(tokFile, []byte("from-file-token\n"), 0o600)
-	body := strings.Replace(minimal, `token = "src-token-123456"`, `token_file = "`+tokFile+`"`, 1)
+	body := strings.Replace(minimal, `token = "src-token-123456"`, `token_file = '`+tokFile+`'`, 1)
 	c, err := Load(write(t, body))
 	if err != nil || c.Source.Token != "from-file-token" {
 		t.Fatalf("file: %v %v", c, err)

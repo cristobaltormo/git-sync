@@ -5,7 +5,9 @@
 # secret_file) or from the environment (GITSYNC_SOURCE_TOKEN,
 # GITSYNC_GITHUB_TOKEN, GITSYNC_WEBHOOK_SECRET); the environment wins over the
 # file and the file over the value written here. Keep this file readable only by
-# the user that runs gitsync.
+# the user that runs gitsync. On Windows write paths between single quotes,
+# 'C:\ProgramData\gitsync\source.token', because a backslash is an escape
+# inside double quotes.
 
 [source]
 # forgejo, gitea, gogs, codeberg, gitlab, gitbucket, onedev,

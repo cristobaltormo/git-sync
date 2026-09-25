@@ -189,7 +189,11 @@ func Load(path string) (*Config, error) {
 		if os.IsNotExist(err) {
 			return nil, Errorf("config file not found: %s (run `gitsync init`)", path)
 		}
-		return nil, Errorf("%s: %v", path, err)
+		msg := err.Error()
+		if strings.Contains(msg, "escape") || strings.Contains(msg, "hexadecimal") {
+			msg += ` (write Windows paths between single quotes: 'C:\path\file')`
+		}
+		return nil, Errorf("%s: %s", path, msg)
 	}
 	if un := md.Undecoded(); len(un) > 0 {
 		names := make([]string, len(un))
