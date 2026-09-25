@@ -256,13 +256,20 @@ func (h *bbHooks) Repo(r *Repo, force bool) (string, error) {
 func (h *bbHooks) RemoveRepo(r *Repo) int {
 	mine, err := h.ours(r)
 	if err != nil {
+		logx.Warnf("%s: listing webhooks: %v", r.Full(), err)
 		return 0
 	}
 	n := 0
 	for _, x := range mine {
-		if d, err := h.b.http.Do("DELETE", h.b.base+h.path(r)+"/"+url.PathEscape(x.UUID), nil); err == nil && d.OK() {
-			n++
+		d, err := h.b.http.Do("DELETE", h.b.base+h.path(r)+"/"+url.PathEscape(x.UUID), nil)
+		if err == nil && !d.OK() {
+			err = httpx.Fail(d, "")
 		}
+		if err != nil {
+			logx.Warnf("%s: removing webhook: %v", r.Full(), err)
+			continue
+		}
+		n++
 	}
 	return n
 }
@@ -478,13 +485,20 @@ func (h *bsHooks) Repo(r *Repo, force bool) (string, error) {
 func (h *bsHooks) RemoveRepo(r *Repo) int {
 	mine, err := h.ours(r)
 	if err != nil {
+		logx.Warnf("%s: listing webhooks: %v", r.Full(), err)
 		return 0
 	}
 	n := 0
 	for _, x := range mine {
-		if d, err := h.b.http.Do("DELETE", fmt.Sprintf("%s%s/%d", h.b.base, h.path(r), x.ID), nil); err == nil && d.OK() {
-			n++
+		d, err := h.b.http.Do("DELETE", fmt.Sprintf("%s%s/%d", h.b.base, h.path(r), x.ID), nil)
+		if err == nil && !d.OK() {
+			err = httpx.Fail(d, "")
 		}
+		if err != nil {
+			logx.Warnf("%s: removing webhook: %v", r.Full(), err)
+			continue
+		}
+		n++
 	}
 	return n
 }

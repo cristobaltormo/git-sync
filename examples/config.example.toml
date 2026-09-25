@@ -11,7 +11,7 @@
 
 [source]
 # forgejo, gitea, gogs, codeberg, gitlab, gitbucket, onedev,
-# bitbucket-cloud (experimental), bitbucket-server (experimental)
+# bitbucket-cloud, bitbucket-server (experimental)
 type = "forgejo"
 # Base URL of the server as this machine reaches it. It is used for the API and
 # for git, so http://127.0.0.1:3000 is fine when it runs on the same host.

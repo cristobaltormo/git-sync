@@ -2,7 +2,8 @@
 
 What gitsync needs from each git server, what to configure so its webhooks get
 through, and what each API does not offer. Every setting below was checked
-against a real server unless the section says it is experimental.
+against a real server unless the section says it is experimental. Only
+Bitbucket Server and Data Center are.
 
 In all cases `source.url` is the address gitsync itself uses to reach the server,
 and `[accounts]` maps a source owner to a GitHub owner.
@@ -124,16 +125,26 @@ Set `type = "onedev"`.
   `listen.public_url` must be an address the container can reach, not
   `127.0.0.1`.
 
-## Bitbucket Cloud (experimental)
+## Bitbucket Cloud
 
-Set `type = "bitbucket-cloud"`. Written from the API documentation and only
-exercised against a simulated server, since testing it needs an Atlassian
-account. Expect rough edges and please report them.
+Set `type = "bitbucket-cloud"`.
 
-- **Token:** a repository, project or workspace access token with the
-  `repository` and `webhook` scopes, used as a bearer token.
-- **Owners:** workspace slugs.
-- **Webhooks:** per repo, signed with `X-Hub-Signature`.
+- **Token:** an API token (Account settings, Security, "Create API token with
+  scopes", application Bitbucket) is used as a bearer token, so no email is
+  needed. Scopes: `read:user:bitbucket`, `read:workspace:bitbucket`,
+  `read:repository:bitbucket` and, for webhooks, `read:webhook:bitbucket`,
+  `write:webhook:bitbucket` and `delete:webhook:bitbucket`. gitsync only reads
+  from Bitbucket, so it never needs write access to the repositories. A free
+  workspace is enough. API tokens expire: note the date when you create one.
+- **Owners:** workspace slugs, the text after `bitbucket.org/` in the URL.
+- **Webhooks:** per repo, signed with `X-Hub-Signature`. Bitbucket calls them from
+  its own servers and checks that the host resolves, so they only work if
+  `listen.public_url` is a public address. From a home network use
+  `hooks.mode = "none"`: the poll notices a push in about ten seconds.
+- **Measured:** a new commit reached GitHub in 11 s, a new repository in 8 s, a
+  rename in 4 s, a visibility change in 4 s and a deletion in 16 s.
+- **Private repos** stay private on GitHub. A repository has to belong to a
+  project on Bitbucket; gitsync does not care which.
 
 ## Bitbucket Server and Data Center (experimental)
 

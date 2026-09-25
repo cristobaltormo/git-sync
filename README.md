@@ -18,14 +18,15 @@ no CPU, it needs no cron and no runtime, only `git`.
 | Gogs | tested | per repo |
 | GitBucket | tested | per repo |
 | OneDev | tested | per repo |
-| Bitbucket Cloud | experimental | per repo |
+| Bitbucket Cloud | tested | per repo, only useful if the server is reachable from the internet |
 | Bitbucket Server and Data Center | experimental | per repo |
 
 Tested means every step of the sync was run against a real server: Forgejo 16,
-Gitea 1.27, GitLab 19, Gogs 0.14, GitBucket 4.48 and OneDev 16. Bitbucket was
-written from its documentation and has only been exercised against a simulated
-server, since running it needs a licence or an account. What each server can and cannot do is
-in [docs/providers.md](docs/providers.md).
+Gitea 1.27, GitLab 19, Gogs 0.14, GitBucket 4.48, OneDev 16 and Bitbucket
+Cloud. Bitbucket Server and Data Center were written from their documentation and
+have only been exercised against a simulated server, since running them needs a
+licence. What each server can and cannot do is in
+[docs/providers.md](docs/providers.md).
 
 ## What is instant and what is not
 
