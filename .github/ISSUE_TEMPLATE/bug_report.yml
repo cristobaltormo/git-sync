@@ -1,0 +1,40 @@
+name: Bug report
+description: Something does not sync the way it should
+body:
+  - type: input
+    id: version
+    attributes:
+      label: gitsync version
+      description: Output of `gitsync version`
+    validations:
+      required: true
+  - type: input
+    id: server
+    attributes:
+      label: Git server and version
+      description: For example Forgejo 16, Gitea 1.27, GitLab 19
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where gitsync runs
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Docker
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output of `gitsync check` and the log
+      description: Set `log.level = "debug"` if the problem is about webhooks. Tokens are hidden in the log, but read it before pasting.
+      render: text

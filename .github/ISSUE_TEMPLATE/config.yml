@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/cristobaltormo/git-sync/discussions
+    about: Ask how to set something up or suggest a change in Discussions.
