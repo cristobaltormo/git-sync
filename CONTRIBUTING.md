@@ -3,6 +3,15 @@
 Bug reports and pull requests are welcome. For anything bigger than a fix, open an
 issue first so we can agree on the approach.
 
+## Pull requests
+
+The GitHub repository is a mirror of the one this project is developed in, so a
+commit made directly on GitHub, such as pressing Merge on a pull request, is
+overwritten by the next sync. Pull requests are still welcome: they are reviewed
+on GitHub, applied to the main repository with your authorship kept, and closed
+with a note saying which commit contains the change. Issues and discussions stay
+on GitHub.
+
 ## Building and testing
 
 ```
