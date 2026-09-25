@@ -3,11 +3,18 @@
 #   [source]  url = "http://forgejo:3000"
 services:
   gitsync:
-    build: .
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
     restart: unless-stopped
     volumes:
       - ./config.toml:/config/config.toml:ro
       - data:/data
+    # Publish the port when the git server is on another machine and reaches
+    # gitsync by this host's address (set listen.public_url to match):
+    # ports:
+    #   - "9001:9001"
     # environment:
     #   GITSYNC_SOURCE_TOKEN: ...
     #   GITSYNC_GITHUB_TOKEN: ...

@@ -179,8 +179,10 @@ docker run -d --name gitsync --restart unless-stopped \
 In a container set `listen.host = "0.0.0.0"` and `listen.public_url` to the
 address the git server uses to reach it, for example `http://gitsync:9001/hook`
 when both are on the same Docker network. [`compose.yaml`](compose.yaml) is a
-starting point. Tokens can come from the environment instead of the file:
-`GITSYNC_SOURCE_TOKEN`, `GITSYNC_GITHUB_TOKEN` and `GITSYNC_WEBHOOK_SECRET`.
+starting point. When the git server is on another machine, publish the port
+(`-p 9001:9001`) and use that machine's address in `public_url`. Tokens can come
+from the environment instead of the file: `GITSYNC_SOURCE_TOKEN`,
+`GITSYNC_GITHUB_TOKEN` and `GITSYNC_WEBHOOK_SECRET`.
 
 ## Commands
 
