@@ -5,8 +5,10 @@ in step. A push lands on GitHub within a few seconds. Renaming a repo, making it
 public, changing its description, archiving it or deleting it is picked up just
 as fast.
 
-gitsync is a single static binary. Idle it uses about 11 MB of RAM and next to
-no CPU, it needs no cron and no runtime, only `git`.
+gitsync is a single static binary. Idle it uses about 11 MB of RAM on Linux and
+next to no CPU, it needs no cron and no runtime, only `git`. It runs on Linux,
+macOS, Windows and in Docker, and its tests run on the three systems on every
+push.
 
 ## Supported servers
 
@@ -18,7 +20,7 @@ no CPU, it needs no cron and no runtime, only `git`.
 | Gogs | tested | per repo |
 | GitBucket | tested | per repo |
 | OneDev | tested | per repo |
-| Bitbucket Cloud | tested | per repo, only useful if the server is reachable from the internet |
+| Bitbucket Cloud | tested | per repo, Bitbucket has to reach your server (see the guide) |
 | Bitbucket Server and Data Center | experimental | per repo |
 
 Tested means every step of the sync was run against a real server: Forgejo 16,
@@ -192,6 +194,8 @@ history.
 
 ## Docker
 
+From a clone of this repository:
+
 ```
 docker build -t gitsync .
 docker run -d --name gitsync --restart unless-stopped \
@@ -230,7 +234,7 @@ is told to keep it low. The systemd unit has a hard cap of 512 MB that you can
 change. Numbers and method are in [docs/benchmarks.md](docs/benchmarks.md).
 
 State is one small JSON file plus a bare mirror of each repo under
-`/var/lib/gitsync`. The mirrors can be deleted at any time and are fetched again
+`/var/lib/gitsync` (`C:\ProgramData\gitsync\state` on Windows). The mirrors can be deleted at any time and are fetched again
 on the next sync.
 
 ## Troubleshooting
@@ -258,6 +262,12 @@ make release   # cross-compiled binaries and checksums in dist/
 
 See [docs/architecture.md](docs/architecture.md) for how it is put together and
 [CONTRIBUTING.md](CONTRIBUTING.md) for adding a server.
+
+## Questions
+
+Use [GitHub Discussions](https://github.com/cristobaltormo/git-sync/discussions) for
+questions and ideas, and issues for bugs. `gitsync check` output and the log
+with `log.level = "debug"` (tokens are hidden) make a report much easier to act on.
 
 ## Credits
 
