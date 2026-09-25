@@ -99,10 +99,14 @@ applies it without a restart.
 On Windows, run `gitsync install` from a PowerShell opened as administrator. It
 copies the binary to `C:\Program Files\gitsync` and the config to
 `C:\ProgramData\gitsync`, restricted to administrators, and registers a
-scheduled task that starts with Windows, runs as SYSTEM and is restarted if it
-fails. State and mirrors are in `C:\ProgramData\gitsync\state`. `kill -HUP`
-does not exist there: restart the task after editing the config with
-`schtasks /End /TN gitsync` and `schtasks /Run /TN gitsync`.
+scheduled task that starts with Windows, runs as SYSTEM and is started again
+within a minute if it ever stops. If the webhook listener is not on localhost it
+also opens that port in the Windows firewall. The log is
+`C:\ProgramData\gitsync\gitsync.log` and the mirrors are in
+`C:\ProgramData\gitsync\state`. There is no `kill -HUP` on Windows: after
+editing the config run `gitsync install` again, or `schtasks /End /TN gitsync`
+and let the task start it. `gitsync uninstall` removes the task, the firewall
+rule and the binary.
 
 On macOS there is no installer: keep `gitsync run` alive with launchd, or use
 Docker.

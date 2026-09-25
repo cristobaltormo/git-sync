@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 
 	"github.com/cristobaltormo/git-sync/internal/config"
 )
@@ -19,7 +20,14 @@ const taskName = "gitsync"
 const taskXML = `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo><Description>Mirror git repositories to GitHub</Description></RegistrationInfo>
-  <Triggers><BootTrigger><Enabled>true</Enabled></BootTrigger></Triggers>
+  <Triggers>
+    <BootTrigger><Enabled>true</Enabled></BootTrigger>
+    <TimeTrigger>
+      <Repetition><Interval>PT1M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition>
+      <StartBoundary>%s</StartBoundary>
+      <Enabled>true</Enabled>
+    </TimeTrigger>
+  </Triggers>
   <Principals><Principal id="Author"><UserId>S-1-5-18</UserId><RunLevel>HighestAvailable</RunLevel></Principal></Principals>
   <Settings>
     <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
@@ -62,7 +70,8 @@ func cmdInstall(cfgPath string, args []string) (int, error) {
 	bin, data := dirs()
 	target := filepath.Join(data, "config.toml")
 	src := config.Find(path)
-	if _, err := config.Load(src); err != nil {
+	cfg, err := config.Load(src)
+	if err != nil {
 		return 2, err
 	}
 	self, err := os.Executable()
@@ -87,10 +96,18 @@ func cmdInstall(cfgPath string, args []string) (int, error) {
 	if err := sh("icacls", data, "/inheritance:r", "/grant:r", "*S-1-5-18:(OI)(CI)F", "*S-1-5-32-544:(OI)(CI)F"); err != nil {
 		return 1, err
 	}
+	sh("netsh", "advfirewall", "firewall", "delete", "rule", "name="+taskName)
+	if h := cfg.Listen.Host; h != "127.0.0.1" && h != "localhost" && h != "::1" {
+		if err := sh("netsh", "advfirewall", "firewall", "add", "rule", "name="+taskName, "dir=in", "action=allow",
+			"protocol=TCP", fmt.Sprintf("localport=%d", cfg.Listen.Port)); err != nil {
+			return 1, err
+		}
+		fmt.Printf("firewall: allowed inbound TCP %d\n", cfg.Listen.Port)
+	}
 	var arg bytes.Buffer
-	xml.EscapeText(&arg, []byte(fmt.Sprintf(`/c set "STATE_DIRECTORY=%s" && "%s" run --config "%s"`, filepath.Join(data, "state"), exe, target)))
+	xml.EscapeText(&arg, []byte(fmt.Sprintf(`/c set "STATE_DIRECTORY=%s" && "%s" run --config "%s" >> "%s" 2>&1`, filepath.Join(data, "state"), exe, target, filepath.Join(data, "gitsync.log"))))
 	tmp := filepath.Join(os.TempDir(), "gitsync-task.xml")
-	if err := os.WriteFile(tmp, utf16le(fmt.Sprintf(taskXML, arg.String())), 0o600); err != nil {
+	if err := os.WriteFile(tmp, utf16le(fmt.Sprintf(taskXML, time.Now().Format("2006-01-02T15:04:05"), arg.String())), 0o600); err != nil {
 		return 1, err
 	}
 	defer os.Remove(tmp)
@@ -104,7 +121,7 @@ func cmdInstall(cfgPath string, args []string) (int, error) {
 	if err := sh("schtasks", "/Run", "/TN", taskName); err != nil {
 		return 1, err
 	}
-	fmt.Printf("task started, it also starts with Windows. State and logs: %s\n", filepath.Join(data, "state"))
+	fmt.Printf("task started, it also starts with Windows. Log: %s\n", filepath.Join(data, "gitsync.log"))
 	return 0, nil
 }
 
@@ -115,6 +132,7 @@ func cmdUninstall(cfgPath string, args []string) (int, error) {
 	bin, data := dirs()
 	sh("schtasks", "/End", "/TN", taskName)
 	sh("schtasks", "/Delete", "/TN", taskName, "/F")
+	sh("netsh", "advfirewall", "firewall", "delete", "rule", "name="+taskName)
 	os.Remove(filepath.Join(bin, "gitsync.exe"))
 	fmt.Printf("removed the task and the binary; %s is kept\n", data)
 	return 0, nil
