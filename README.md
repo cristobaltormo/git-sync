@@ -209,7 +209,7 @@ docker run -d --name gitsync --restart unless-stopped \
   ghcr.io/cristobaltormo/git-sync:latest
 ```
 
-Pin a version with a tag, e.g. `ghcr.io/cristobaltormo/git-sync:v1.0.0`. To build
+Pin a version with a tag, e.g. `ghcr.io/cristobaltormo/git-sync:v1.0.1`. To build
 it yourself instead, from a clone of this repository:
 
 ```

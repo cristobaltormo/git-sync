@@ -215,7 +215,7 @@ docker run -d --name gitsync --restart unless-stopped \
 ```
 
 Para fijar una versión, usa su etiqueta, por ejemplo
-`ghcr.io/cristobaltormo/git-sync:v1.0.0`. Para construirla tú mismo en su lugar,
+`ghcr.io/cristobaltormo/git-sync:v1.0.1`. Para construirla tú mismo en su lugar,
 desde un clon de este repositorio:
 
 ```
