@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/cristobaltormo/git-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/cristobaltormo/git-sync/actions/workflows/ci.yml)
 [![Licencia](https://img.shields.io/badge/licencia-Apache--2.0-blue)](LICENSE)
+[![Imagen Docker](https://img.shields.io/badge/ghcr.io-git--sync-blue?logo=docker)](https://github.com/cristobaltormo/git-sync/pkgs/container/git-sync)
 
 Replica tus repositorios de un servidor git propio en GitHub y los mantiene al
 día. Un push llega a GitHub en pocos segundos. Renombrar un repo, hacerlo
@@ -204,13 +205,21 @@ del historial.
 
 ## Docker
 
-Desde un clon de este repositorio:
+Cada release publica una imagen multi-arquitectura (`linux/amd64`, `linux/arm64`) en el
+[GitHub Container Registry](https://github.com/cristobaltormo/git-sync/pkgs/container/git-sync):
+
+```
+docker run -d --name gitsync --restart unless-stopped \
+  -v ./config.toml:/config/config.toml:ro -v gitsync-data:/data \
+  ghcr.io/cristobaltormo/git-sync:latest
+```
+
+Para fijar una versión, usa su etiqueta, por ejemplo
+`ghcr.io/cristobaltormo/git-sync:v1.0.0`. Para construirla tú mismo en su lugar,
+desde un clon de este repositorio:
 
 ```
 docker build -t gitsync .
-docker run -d --name gitsync --restart unless-stopped \
-  -v ./config.toml:/config/config.toml:ro -v gitsync-data:/data \
-  gitsync
 ```
 
 Dentro de un contenedor pon `listen.host = "0.0.0.0"` y `listen.public_url` con

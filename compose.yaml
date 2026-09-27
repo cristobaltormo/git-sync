@@ -3,10 +3,12 @@
 #   [source]  url = "http://forgejo:3000"
 services:
   gitsync:
-    build:
-      context: .
-      args:
-        VERSION: ${VERSION:-dev}
+    image: ghcr.io/cristobaltormo/git-sync:${VERSION:-latest}
+    # To build from source instead, replace the line above with:
+    # build:
+    #   context: .
+    #   args:
+    #     VERSION: ${VERSION:-dev}
     restart: unless-stopped
     volumes:
       - ./config.toml:/config/config.toml:ro

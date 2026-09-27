@@ -4,6 +4,7 @@ English | [Español](README.es.md)
 
 [![CI](https://github.com/cristobaltormo/git-sync/actions/workflows/ci.yml/badge.svg)](https://github.com/cristobaltormo/git-sync/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Docker image](https://img.shields.io/badge/ghcr.io-git--sync-blue?logo=docker)](https://github.com/cristobaltormo/git-sync/pkgs/container/git-sync)
 
 Mirror your repositories from a self-hosted git server to GitHub, and keep them
 in step. A push lands on GitHub within a few seconds. Renaming a repo, making it
@@ -199,13 +200,20 @@ history.
 
 ## Docker
 
-From a clone of this repository:
+Each release publishes a multi-arch image (`linux/amd64`, `linux/arm64`) to the
+[GitHub Container Registry](https://github.com/cristobaltormo/git-sync/pkgs/container/git-sync):
+
+```
+docker run -d --name gitsync --restart unless-stopped \
+  -v ./config.toml:/config/config.toml:ro -v gitsync-data:/data \
+  ghcr.io/cristobaltormo/git-sync:latest
+```
+
+Pin a version with a tag, e.g. `ghcr.io/cristobaltormo/git-sync:v1.0.0`. To build
+it yourself instead, from a clone of this repository:
 
 ```
 docker build -t gitsync .
-docker run -d --name gitsync --restart unless-stopped \
-  -v ./config.toml:/config/config.toml:ro -v gitsync-data:/data \
-  gitsync
 ```
 
 In a container set `listen.host = "0.0.0.0"` and `listen.public_url` to the

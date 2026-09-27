@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Each release now also publishes a multi-arch Docker image
+  (`linux/amd64`, `linux/arm64`) to the GitHub Container Registry.
+
 ## 1.0.0 (2026-09-25)
 
 First release.
