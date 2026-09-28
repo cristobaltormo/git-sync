@@ -182,6 +182,12 @@ público.
 Un repo que ya existe en GitHub y no fue creado por gitsync se deja como está y
 se avisa en el log. Pon `adopt_existing = true` para que gitsync se haga cargo de
 él, sabiendo que la copia de GitHub se sobrescribirá para igualar el origen.
+Adoptar no es "usa este repo como remoto y no lo toques" — una vez adoptado, el
+repo de GitHub se trata exactamente igual que uno creado por gitsync, así que
+cualquier cambio de ciclo de vida en el origen también le llega: un renombrado
+lo renombra, y un borrado en el origen puede acabar borrándolo (sujeto a las
+salvaguardas de borrado de más abajo). Adopta solo un repo cuya propiedad estés
+dispuesto a ceder así.
 
 El borrado es cuidadoso a propósito. Un repo que desaparece del origen solo se
 trata pasados `delete_grace` segundos, y solo si preguntar directamente al

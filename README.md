@@ -178,6 +178,11 @@ source is public. A repo that is private on the source never becomes public.
 A repo that already exists on GitHub and was not created by gitsync is left
 alone and reported in the log. Set `adopt_existing = true` to let gitsync take
 it over, knowing the GitHub copy will be overwritten to match the source.
+Adoption is not "use this repo as a remote and otherwise leave it alone": once
+adopted, the GitHub repo is treated exactly like one gitsync created itself, so
+every source-side lifecycle change reaches it too — a rename renames it, and a
+deletion at the source can eventually delete it (subject to the delete
+safeguards below). Only adopt a repo you are fine handing that ownership to.
 
 Deleting is careful on purpose. A repo that disappears from the source is only
 acted on after `delete_grace` seconds, and only if asking the server for it
