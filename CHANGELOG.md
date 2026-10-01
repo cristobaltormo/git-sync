@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 (2026-10-01)
+
+- `gitsync config set`, `config profile` and `repos` now keep the owner and group of
+  the file they rewrite. Run as root against a config owned by another user (the
+  usual systemd setup), they used to leave a file the service could not read.
+
 ## 1.2.0 (2026-10-01)
 
 Choosing what to sync, and a better way to do it. Existing configs keep working

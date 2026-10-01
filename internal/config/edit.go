@@ -102,5 +102,6 @@ func SetValues(path string, kv map[string]string) error {
 	if err := os.Chmod(tmp.Name(), st.Mode().Perm()); err != nil && !isWindows() {
 		return err
 	}
+	keepOwner(tmp.Name(), st)
 	return os.Rename(tmp.Name(), path)
 }

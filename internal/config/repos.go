@@ -150,12 +150,20 @@ func (r *Repos) Save() error {
 		tmp.Close()
 		return err
 	}
-	if err := tmp.Chmod(0o644); err != nil && !isWindows() {
+	mode := os.FileMode(0o644)
+	prev, prevErr := os.Stat(r.Path)
+	if prevErr == nil {
+		mode = prev.Mode().Perm()
+	}
+	if err := tmp.Chmod(mode); err != nil && !isWindows() {
 		tmp.Close()
 		return err
 	}
 	if err := tmp.Close(); err != nil {
 		return err
+	}
+	if prevErr == nil {
+		keepOwner(tmp.Name(), prev)
 	}
 	return os.Rename(tmp.Name(), r.Path)
 }

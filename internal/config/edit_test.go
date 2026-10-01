@@ -115,3 +115,21 @@ func mustKey(t *testing.T, n string) Key {
 	}
 	return k
 }
+
+func TestSetValuesKeepsOwner(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() != 0 {
+		t.Skip("needs root to hand a file to another user")
+	}
+	p := sampleFile(t)
+	if err := os.Chown(p, 4242, 4343); err != nil {
+		t.Skip(err)
+	}
+	if err := SetValues(p, map[string]string{"sync.poll_interval": "9"}); err != nil {
+		t.Fatal(err)
+	}
+	st, _ := os.Stat(p)
+	uid, gid := owner(st)
+	if uid != 4242 || gid != 4343 {
+		t.Fatalf("owner became %d:%d", uid, gid)
+	}
+}
