@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 (unreleased)
+## 1.2.0 (2026-10-01)
 
 Choosing what to sync, and a better way to do it. Existing configs keep working
 unchanged.
