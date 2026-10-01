@@ -86,6 +86,7 @@ Set them in `gitsync repos` (`o` on a repository), or from the command line:
 ```
 gitsync repos set alice/site name=site-mirror keep_private=true
 gitsync repos set alice/site tags=false on_delete=archive
+gitsync repos set alice/site prune=false
 gitsync repos set alice/site keep_private=       # clears one option
 ```
 
@@ -95,6 +96,7 @@ gitsync repos set alice/site keep_private=       # clears one option
 | `keep_private` | The GitHub copy never becomes public, even if the source is. |
 | `tags` | Mirror tags for this repository, overriding `sync.tags`. |
 | `metadata` | Copy description and topics, overriding `sync.metadata`. |
+| `prune` | `false` keeps branches that exist only on GitHub. By default the push removes them so GitHub equals the source. |
 | `on_delete` | `delete`, `archive` or `ignore` when it disappears from the source. |
 | `note` | Free text for you. |
 
@@ -125,6 +127,14 @@ Pull requests are looked up with one GitHub search request per account every
 `verify_interval`, and only if `mode = "comment"` or a notification is configured
 for them. The first look after enabling it records what is already open without
 reacting, so you are not flooded. `{url}` and `{repo}` are replaced in the message.
+
+If a public repository takes pull requests, two things can still affect them. gitsync
+force-pushes and prunes, so a branch that exists only on GitHub is removed on the next
+sync, and GitHub closes a pull request whose head branch disappears (pull requests
+from forks are not affected). Set `prune = false` on that repository to keep such
+branches, and `on_delete = "ignore"` so that removing the source repository never
+deletes the GitHub one together with its pull requests and issues. gitsync itself
+never closes, deletes or edits pull requests, issues, discussions or releases.
 
 A repository created directly on GitHub, or one you were invited to there, is not
 touched in any way. `gitsync report` lists the pull requests open on your mirrors

@@ -182,7 +182,12 @@ type Result struct {
 
 // last is the Refs of the previous successful push; when the fetch brings nothing new the
 // push is skipped. Pass "" to push regardless.
-func (g *Git) Mirror(r *forge.Repo, ghOwner, ghName, last string, tags bool) (Result, error) {
+type Options struct {
+	Tags  bool
+	Prune bool
+}
+
+func (g *Git) Mirror(r *forge.Repo, ghOwner, ghName, last string, opt Options) (Result, error) {
 	if g.dry {
 		logx.Infof("dry-run: mirror %s -> %s/%s", r.Full(), ghOwner, ghName)
 		return Result{Summary: "dry-run"}, nil
@@ -203,7 +208,7 @@ func (g *Git) Mirror(r *forge.Repo, ghOwner, ghName, last string, tags bool) (Re
 	dst := fmt.Sprintf("%s/%s/%s.git", strings.TrimRight(g.cfg.GitHub.GitURL, "/"), ghOwner, ghName)
 	refs := []string{"+refs/heads/*:refs/heads/*"}
 	kinds := []string{"refs/heads"}
-	if tags {
+	if opt.Tags {
 		refs = append(refs, "+refs/tags/*:refs/tags/*")
 		kinds = append(kinds, "refs/tags")
 	}
@@ -223,7 +228,11 @@ func (g *Git) Mirror(r *forge.Repo, ghOwner, ghName, last string, tags bool) (Re
 		logx.Debugf("%s: nothing new since the last push", r.Full())
 		return Result{Summary: "up to date", Refs: state}, nil
 	}
-	out, err := g.attempt(env, bare, append([]string{"push", "--progress", "--porcelain", "--prune", dst}, refs...)...)
+	push := []string{"push", "--progress", "--porcelain"}
+	if opt.Prune {
+		push = append(push, "--prune")
+	}
+	out, err := g.attempt(env, bare, append(push, append([]string{dst}, refs...)...)...)
 	if err != nil {
 		return Result{}, err
 	}

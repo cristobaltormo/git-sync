@@ -426,6 +426,7 @@ func (m *tuiModel) options(it *item) []optionRow {
 		{"Keep the copy private", tri(r.KeepPrivate)},
 		{"Mirror tags", tri(r.Tags)},
 		{"Copy description and topics", tri(r.Metadata)},
+		{"Delete branches only on GitHub", tri(r.Prune)},
 		{"When removed from the source", od},
 		{"Note", note},
 	}
@@ -503,9 +504,11 @@ func (m *tuiModel) changeOption(it *item, back bool) {
 	case 4:
 		m.edit(it, func(r *config.RepoRule) { r.Metadata = cycleBool(r.Metadata, back) })
 	case 5:
+		m.edit(it, func(r *config.RepoRule) { r.Prune = cycleBool(r.Prune, back) })
+	case 6:
 		cs := []string{"", "delete", "archive", "ignore"}
 		m.edit(it, func(r *config.RepoRule) { r.OnDelete = cycleChoice(cs, r.OnDelete, back) })
-	case 6:
+	case 7:
 		m.ask("Note", m.rule(it).Note, func(v string) {
 			m.apply(it, func(r *config.RepoRule) { r.Note = v })
 		})

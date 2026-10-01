@@ -100,3 +100,20 @@ func TestPerRepoOnDelete(t *testing.T) {
 	h.run(false)
 	isTrue(t, h.tgt.has("alice-gh/site"), "on_delete = ignore keeps the copy")
 }
+
+func TestPruneOptionReachesTheMirror(t *testing.T) {
+	h := newHarness(t, withRules(map[string]*config.RepoRule{"alice/site": {Prune: no()}}))
+	h.src.set(mk(1, "site"))
+	h.src.set(mk(2, "other"))
+	h.run(false)
+	for i, c := range h.mir.calls {
+		prune := h.mir.opts[i].Prune
+		if strings.Contains(c, "alice/site") && prune {
+			t.Fatal("prune = false must be passed to the mirror")
+		}
+		if strings.Contains(c, "alice/other") && !prune {
+			t.Fatal("prune stays on for repos without the option")
+		}
+	}
+	eq(t, len(h.mir.calls), 2)
+}

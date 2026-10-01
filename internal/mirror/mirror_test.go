@@ -189,7 +189,7 @@ func TestMirrorPushesThenSkipsWhenNothingChanged(t *testing.T) {
 	g := New(cfg, local{}, false)
 	repo := &forge.Repo{ID: 7, Owner: "alice", Name: "site", Website: srcDir}
 
-	first, err := g.Mirror(repo, "alice", "site", "", true)
+	first, err := g.Mirror(repo, "alice", "site", "", Options{Tags: true, Prune: true})
 	if err != nil || first.Summary != "1 ref(s) updated" || first.Refs == "" {
 		t.Fatalf("first push: %+v %v", first, err)
 	}
@@ -200,15 +200,49 @@ func TestMirrorPushesThenSkipsWhenNothingChanged(t *testing.T) {
 
 	// nothing new: no push at all, even if the destination were unreachable
 	os.RemoveAll(filepath.Join(ghRoot, "alice", "site.git"))
-	again, err := g.Mirror(repo, "alice", "site", first.Refs, true)
+	again, err := g.Mirror(repo, "alice", "site", first.Refs, Options{Tags: true, Prune: true})
 	if err != nil || again.Summary != "up to date" || again.Refs != first.Refs {
 		t.Fatalf("second run: %+v %v", again, err)
 	}
 
 	gitIn(t, srcDir, "commit", "-q", "--allow-empty", "-m", "two")
 	gitIn(t, root, "init", "-q", "--bare", filepath.Join(ghRoot, "alice", "site.git"))
-	next, err := g.Mirror(repo, "alice", "site", first.Refs, true)
+	next, err := g.Mirror(repo, "alice", "site", first.Refs, Options{Tags: true, Prune: true})
 	if err != nil || next.Refs == first.Refs || next.Summary == "up to date" {
 		t.Fatalf("a new commit must be pushed: %+v %v", next, err)
+	}
+}
+
+func TestMirrorKeepsBranchesOnlyOnTheDestinationWhenPruneIsOff(t *testing.T) {
+	root := t.TempDir()
+	srcDir, ghRoot := filepath.Join(root, "source"), filepath.Join(root, "gh")
+	dst := filepath.Join(ghRoot, "alice", "site.git")
+	if err := os.MkdirAll(filepath.Join(ghRoot, "alice"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, root, "init", "-q", "-b", "main", srcDir)
+	gitIn(t, srcDir, "commit", "-q", "--allow-empty", "-m", "one")
+	gitIn(t, root, "init", "-q", "--bare", dst)
+	cfg := config.Default()
+	cfg.Paths.StateDir = filepath.Join(root, "state")
+	cfg.GitHub.Token, cfg.GitHub.GitURL = "gh-token-123456", "file://"+ghRoot
+	g := New(cfg, local{}, false)
+	repo := &forge.Repo{ID: 7, Owner: "alice", Name: "site", Website: srcDir}
+	if _, err := g.Mirror(repo, "alice", "site", "", Options{Tags: true}); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, dst, "branch", "pr-head", "main")
+	gitIn(t, srcDir, "commit", "-q", "--allow-empty", "-m", "two")
+	if _, err := g.Mirror(repo, "alice", "site", "", Options{Tags: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got := gitIn(t, dst, "branch", "--list", "pr-head"); !strings.Contains(got, "pr-head") {
+		t.Fatal("a branch that exists only on the destination must survive when prune is off")
+	}
+	if _, err := g.Mirror(repo, "alice", "site", "", Options{Tags: true, Prune: true}); err != nil {
+		t.Fatal(err)
+	}
+	if got := gitIn(t, dst, "branch", "--list", "pr-head"); strings.Contains(got, "pr-head") {
+		t.Fatal("with prune on the extra branch must go")
 	}
 }

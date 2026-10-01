@@ -9,6 +9,7 @@ import (
 	"github.com/cristobaltormo/git-sync/internal/forge"
 	"github.com/cristobaltormo/git-sync/internal/github"
 	"github.com/cristobaltormo/git-sync/internal/logx"
+	"github.com/cristobaltormo/git-sync/internal/mirror"
 )
 
 type repoSync struct {
@@ -39,6 +40,8 @@ func (s *repoSync) tags() bool {
 	}
 	return s.cfg.Sync.Tags
 }
+
+func (s *repoSync) prune() bool { return s.rule.Prune == nil || *s.rule.Prune }
 
 func (s *repoSync) keepPrivate() bool { return s.rule.KeepPrivate != nil && *s.rule.KeepPrivate }
 
@@ -155,7 +158,7 @@ func (s *repoSync) push() error {
 	if !s.job.Verify && !s.job.Force {
 		last = s.ent.Refs
 	}
-	res, err := s.e.mir.Mirror(s.repo, s.owner, s.name, last, s.tags())
+	res, err := s.e.mir.Mirror(s.repo, s.owner, s.name, last, mirror.Options{Tags: s.tags(), Prune: s.prune()})
 	if err != nil {
 		return err
 	}

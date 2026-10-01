@@ -17,13 +17,14 @@ type RepoRule struct {
 	KeepPrivate *bool  `toml:"keep_private,omitempty"`
 	Tags        *bool  `toml:"tags,omitempty"`
 	Metadata    *bool  `toml:"metadata,omitempty"`
+	Prune       *bool  `toml:"prune,omitempty"`
 	OnDelete    string `toml:"on_delete,omitempty"`
 	Note        string `toml:"note,omitempty"`
 }
 
 func (r *RepoRule) empty() bool {
 	return r.Sync == nil && r.Name == "" && r.KeepPrivate == nil && r.Tags == nil &&
-		r.Metadata == nil && r.OnDelete == "" && r.Note == ""
+		r.Metadata == nil && r.Prune == nil && r.OnDelete == "" && r.Note == ""
 }
 
 type Repos struct {
@@ -121,6 +122,7 @@ const reposHeader = `# Per-repository decisions and overrides, written by "gitsy
 #   keep_private never make the GitHub copy public
 #   tags         mirror tags (overrides sync.tags)
 #   metadata     copy description and topics (overrides sync.metadata)
+#   prune        false: keep branches that exist only on GitHub (pull request heads)
 #   on_delete    delete, archive or ignore when it disappears from the source
 #   note         free text for you
 

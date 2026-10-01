@@ -80,6 +80,7 @@ func explain(a *app, it *item) {
 		"description and topics " + yn(ruleBool(rule, func(x *config.RepoRule) *bool { return x.Metadata }, cfg.Sync.Metadata)),
 		"follows visibility " + yn(cfg.Sync.Visibility && !ruleBool(rule, func(x *config.RepoRule) *bool { return x.KeepPrivate }, false)),
 	}
+	opts = append(opts, "branches only on GitHub: "+map[bool]string{true: "deleted", false: "kept"}[ruleBool(rule, func(x *config.RepoRule) *bool { return x.Prune }, true)])
 	onDelete := cfg.Sync.OnDelete
 	if rule != nil && rule.OnDelete != "" {
 		onDelete = rule.OnDelete

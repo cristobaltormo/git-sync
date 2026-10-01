@@ -22,3 +22,11 @@ tags = false
 # Archive the GitHub copy instead of deleting it if this repo is removed.
 [repos."my-org/website"]
 on_delete = "archive"
+
+# A public project that takes pull requests: keep branches that only exist on
+# GitHub (a pull request head would be closed if its branch were removed) and
+# never touch the GitHub repo, with its issues and pull requests, if the source
+# repo is removed.
+[repos."alice/open-source-thing"]
+prune = false
+on_delete = "ignore"

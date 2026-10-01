@@ -197,10 +197,11 @@ type fakeMirror struct {
 	mu    sync.Mutex
 	calls []string
 	lasts []string
+	opts  []mirror.Options
 	fail  error
 }
 
-func (m *fakeMirror) Mirror(r *forge.Repo, o, n, last string, tags bool) (mirror.Result, error) {
+func (m *fakeMirror) Mirror(r *forge.Repo, o, n, last string, opt mirror.Options) (mirror.Result, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.fail != nil {
@@ -208,6 +209,7 @@ func (m *fakeMirror) Mirror(r *forge.Repo, o, n, last string, tags bool) (mirror
 	}
 	m.calls = append(m.calls, "mirror "+r.Full()+" "+o+"/"+n)
 	m.lasts = append(m.lasts, last)
+	m.opts = append(m.opts, opt)
 	addEvent("mirror")
 	return mirror.Result{Summary: "1 ref(s) updated", Refs: "refs-" + r.Updated}, nil
 }

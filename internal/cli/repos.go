@@ -21,7 +21,7 @@ With no command in a terminal, opens the interactive selector.
   ignore <repo>...               never sync these repositories
   reset <repo>...                forget the decision, the general rules apply again
   set <repo> key=value ...       per-repository options: name, keep_private, tags,
-                                 metadata, on_delete, note (key= clears one)
+                                 metadata, prune, on_delete, note (key= clears one)
 
 A repo is owner/name, just the name, or a pattern such as 'my-org/*'.
 `
@@ -308,8 +308,10 @@ func applyOption(x *config.RepoRule, key, val string) error {
 		x.Tags, err = parseBoolOpt(val)
 	case "metadata":
 		x.Metadata, err = parseBoolOpt(val)
+	case "prune":
+		x.Prune, err = parseBoolOpt(val)
 	default:
-		return config.Errorf("unknown option %q (name, keep_private, tags, metadata, on_delete, note)", key)
+		return config.Errorf("unknown option %q (name, keep_private, tags, metadata, prune, on_delete, note)", key)
 	}
 	return err
 }

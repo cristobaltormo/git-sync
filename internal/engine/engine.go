@@ -30,7 +30,7 @@ type Target interface {
 }
 
 type Mirror interface {
-	Mirror(r *forge.Repo, ghOwner, ghName, last string, tags bool) (mirror.Result, error)
+	Mirror(r *forge.Repo, ghOwner, ghName, last string, opt mirror.Options) (mirror.Result, error)
 	Forget(id int64)
 }
 

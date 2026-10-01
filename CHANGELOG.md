@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 (2026-10-01)
+
+- Per-repository `prune` option: `false` keeps branches that exist only on GitHub, so
+  pull requests opened from a branch of the repository itself are not closed by the
+  next sync.
+
 ## 1.2.1 (2026-10-01)
 
 - `gitsync config set`, `config profile` and `repos` now keep the owner and group of
