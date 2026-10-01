@@ -29,7 +29,14 @@ type Repo struct {
 	Empty         bool
 	Topics        []string
 	Updated       string
+	Role          string
 }
+
+const (
+	RoleAdmin = "admin"
+	RoleWrite = "write"
+	RoleRead  = "read"
+)
 
 func (r *Repo) Full() string {
 	if r.Owner == OneDevRoot {

@@ -35,10 +35,10 @@ func (s *repoSync) beforePush(skip bool) error {
 func (s *repoSync) afterPush(skipped bool) error {
 	sy := s.cfg.Sync
 	post := map[string]any{}
-	if sy.Visibility && !s.repo.Private && s.cur.Private {
+	if sy.Visibility && !s.keepPrivate() && !s.repo.Private && s.cur.Private {
 		post["private"] = false
 	}
-	if sy.Metadata {
+	if s.metadata() {
 		if d := describeRepo(s.repo); d != s.cur.Description {
 			post["description"] = d
 		}
@@ -55,7 +55,7 @@ func (s *repoSync) afterPush(skipped bool) error {
 			return err
 		}
 	}
-	if sy.Metadata {
+	if s.metadata() {
 		topics := github.CleanTopics(s.repo.Topics, s.cfg.Filter.Topic)
 		sort.Strings(topics)
 		if !equal(topics, s.cur.Topics) {

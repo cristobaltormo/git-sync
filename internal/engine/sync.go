@@ -23,7 +23,24 @@ type repoSync struct {
 	managed bool
 	cur     *github.Snap
 	actions []string
+	rule    config.RepoRule
 }
+
+func (s *repoSync) metadata() bool {
+	if s.rule.Metadata != nil {
+		return *s.rule.Metadata
+	}
+	return s.cfg.Sync.Metadata
+}
+
+func (s *repoSync) tags() bool {
+	if s.rule.Tags != nil {
+		return *s.rule.Tags
+	}
+	return s.cfg.Sync.Tags
+}
+
+func (s *repoSync) keepPrivate() bool { return s.rule.KeepPrivate != nil && *s.rule.KeepPrivate }
 
 func (e *Engine) syncRepo(repo *forge.Repo, job *Job) (err error) {
 	cfg := e.Config()
@@ -32,6 +49,12 @@ func (e *Engine) syncRepo(repo *forge.Repo, job *Job) (err error) {
 		return nil
 	}
 	s := &repoSync{e: e, cfg: cfg, repo: repo, job: job, owner: owner, name: repo.Name}
+	if r := cfg.Repos.Rule(repo.Full()); r != nil {
+		s.rule = *r
+		if r.Name != "" {
+			s.name = r.Name
+		}
+	}
 	s.ent, s.has = e.state.get(repo.ID)
 	s.managed = s.has && s.ent.Managed
 
@@ -43,7 +66,7 @@ func (e *Engine) syncRepo(repo *forge.Repo, job *Job) (err error) {
 	}
 	e.state.update(repo.ID, true, func(x *Entry) {
 		x.Owner, x.Name, x.GHOwner, x.GHName = repo.Owner, repo.Name, s.owner, s.name
-		x.Managed, x.Excluded, x.MissingSince = true, false, 0
+		x.Managed, x.Excluded, x.MissingSince, x.Pending = true, false, 0, 0
 	})
 	defer func() {
 		snap := s.cur.Clone()
@@ -101,7 +124,7 @@ func (s *repoSync) resolve() error {
 		return nil
 	}
 	desc, home := "", ""
-	if sy.Metadata {
+	if s.metadata() {
 		desc, home = describeRepo(s.repo), homepage(s.repo)
 	}
 	created, err := s.e.tgt.Create(s.owner, s.name, desc, home)
@@ -132,7 +155,7 @@ func (s *repoSync) push() error {
 	if !s.job.Verify && !s.job.Force {
 		last = s.ent.Refs
 	}
-	res, err := s.e.mir.Mirror(s.repo, s.owner, s.name, last)
+	res, err := s.e.mir.Mirror(s.repo, s.owner, s.name, last, s.tags())
 	if err != nil {
 		return err
 	}

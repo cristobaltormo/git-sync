@@ -25,10 +25,12 @@ type Target interface {
 	Patch(owner, name string, fields map[string]any) error
 	SetTopics(owner, name string, topics []string) error
 	Delete(owner, name string) error
+	OpenPulls(owner string) ([]github.Pull, error)
+	Comment(owner, name string, number int, body string) error
 }
 
 type Mirror interface {
-	Mirror(r *forge.Repo, ghOwner, ghName, last string) (mirror.Result, error)
+	Mirror(r *forge.Repo, ghOwner, ghName, last string, tags bool) (mirror.Result, error)
 	Forget(id int64)
 }
 
@@ -49,6 +51,8 @@ type Engine struct {
 	hooksMode string
 
 	wake chan struct{}
+
+	OnTick func()
 
 	delMu     sync.Mutex
 	deletions []time.Time

@@ -50,6 +50,9 @@ func cmdStatus(cfgPath string, args []string) (int, error) {
 		if x.Excluded {
 			line += "  (excluded by filter)"
 		}
+		if !x.Managed && x.Pending != 0 {
+			line += "  (waiting for your decision: gitsync repos)"
+		}
 		if x.LastError != "" {
 			line += "  ERROR: " + x.LastError
 		}

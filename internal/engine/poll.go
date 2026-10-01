@@ -14,6 +14,9 @@ func (e *Engine) PollLoop(ctx context.Context) {
 	lastVerify := time.Now()
 	for ctx.Err() == nil {
 		now := time.Now()
+		if e.OnTick != nil {
+			e.OnTick()
+		}
 		sy := e.Config().Sync
 		if e.HookMode() == "" && now.Sub(lastHookTry) >= 30*time.Second {
 			lastHookTry = now
@@ -42,6 +45,7 @@ func (e *Engine) PollLoop(ctx context.Context) {
 				lastFP = fp
 				if verify {
 					lastVerify = now
+					e.checkPulls()
 				}
 			}
 			first, down = false, false

@@ -2,8 +2,10 @@ package github
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -247,5 +249,121 @@ func (c *Client) SetTopics(owner, name string, topics []string) error {
 
 func (c *Client) Delete(owner, name string) error {
 	_, err := c.send("DELETE", fmt.Sprintf("/repos/%s/%s", owner, name), nil)
+	return err
+}
+
+type Listed struct {
+	Name     string `json:"name"`
+	FullName string `json:"full_name"`
+	Private  bool   `json:"private"`
+	Archived bool   `json:"archived"`
+	Fork     bool   `json:"fork"`
+	HTMLURL  string `json:"html_url"`
+	PushedAt string `json:"pushed_at"`
+	Owner    struct {
+		Login string `json:"login"`
+	} `json:"owner"`
+}
+
+func (c *Client) ListRepos(owner string) ([]Listed, error) {
+	me, _, err := c.Whoami()
+	if err != nil {
+		return nil, err
+	}
+	base := "/users/" + owner + "/repos"
+	switch {
+	case strings.EqualFold(owner, me):
+		base = "/user/repos?affiliation=owner"
+	default:
+		t, err := c.OwnerType(owner)
+		if err != nil {
+			return nil, err
+		}
+		if t == "Organization" {
+			base = "/orgs/" + owner + "/repos?type=all"
+		}
+	}
+	sep := "?"
+	if strings.Contains(base, "?") {
+		sep = "&"
+	}
+	var out []Listed
+	for page := 1; page <= 30; page++ {
+		r, err := c.http.Do("GET", fmt.Sprintf("%s%s%sper_page=100&page=%d", c.base, base, sep, page), nil)
+		if err != nil {
+			return nil, err
+		}
+		if !r.OK() {
+			return nil, httpx.Fail(r, "listing "+owner)
+		}
+		var rows []Listed
+		if err := r.Decode(&rows); err != nil {
+			return nil, err
+		}
+		for _, x := range rows {
+			if strings.EqualFold(x.Owner.Login, owner) {
+				out = append(out, x)
+			}
+		}
+		if len(rows) < 100 {
+			break
+		}
+	}
+	return out, nil
+}
+
+type Pull struct {
+	Owner  string
+	Repo   string
+	Number int
+	Title  string
+	URL    string
+	Author string
+}
+
+func (p Pull) Key() string { return fmt.Sprintf("%s/%s#%d", p.Owner, p.Repo, p.Number) }
+
+func (c *Client) OpenPulls(owner string) ([]Pull, error) {
+	var out []Pull
+	for page := 1; page <= 10; page++ {
+		q := url.Values{"q": {"is:pr is:open user:" + owner}, "per_page": {"100"}, "page": {strconv.Itoa(page)}}
+		r, err := c.http.Do("GET", c.base+"/search/issues?"+q.Encode(), nil)
+		if err != nil {
+			return nil, err
+		}
+		if !r.OK() {
+			return nil, httpx.Fail(r, "searching pull requests of "+owner)
+		}
+		var res struct {
+			Items []struct {
+				Number        int    `json:"number"`
+				Title         string `json:"title"`
+				HTMLURL       string `json:"html_url"`
+				RepositoryURL string `json:"repository_url"`
+				User          struct {
+					Login string `json:"login"`
+				} `json:"user"`
+			} `json:"items"`
+		}
+		if err := r.Decode(&res); err != nil {
+			return nil, err
+		}
+		for _, it := range res.Items {
+			parts := strings.Split(strings.TrimRight(it.RepositoryURL, "/"), "/")
+			if len(parts) < 2 {
+				continue
+			}
+			out = append(out, Pull{Owner: parts[len(parts)-2], Repo: parts[len(parts)-1], Number: it.Number,
+				Title: it.Title, URL: it.HTMLURL, Author: it.User.Login})
+		}
+		if len(res.Items) < 100 {
+			break
+		}
+	}
+	return out, nil
+}
+
+func (c *Client) Comment(owner, name string, number int, body string) error {
+	_, err := c.send("POST", fmt.Sprintf("/repos/%s/%s/issues/%d/comments", owner, name, number), map[string]string{"body": body})
 	return err
 }

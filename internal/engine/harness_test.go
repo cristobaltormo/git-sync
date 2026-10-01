@@ -95,9 +95,13 @@ type fakeTarget struct {
 	mu           sync.Mutex
 	repos        map[string]*github.Repo
 	calls        []string
+	pulls        map[string][]github.Pull
+	comments     []string
 }
 
-func newFakeTarget() *fakeTarget { return &fakeTarget{repos: map[string]*github.Repo{}} }
+func newFakeTarget() *fakeTarget {
+	return &fakeTarget{repos: map[string]*github.Repo{}, pulls: map[string][]github.Pull{}}
+}
 
 func ptr(s string) *string { return &s }
 
@@ -174,6 +178,19 @@ func (g *fakeTarget) Delete(owner, name string) error {
 	return nil
 }
 
+func (g *fakeTarget) OpenPulls(owner string) ([]github.Pull, error) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return append([]github.Pull(nil), g.pulls[owner]...), nil
+}
+
+func (g *fakeTarget) Comment(owner, name string, number int, body string) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.comments = append(g.comments, fmt.Sprintf("%s/%s#%d: %s", owner, name, number, body))
+	return nil
+}
+
 func (g *fakeTarget) has(key string) bool { return g.repos[key] != nil }
 
 type fakeMirror struct {
@@ -183,7 +200,7 @@ type fakeMirror struct {
 	fail  error
 }
 
-func (m *fakeMirror) Mirror(r *forge.Repo, o, n, last string) (mirror.Result, error) {
+func (m *fakeMirror) Mirror(r *forge.Repo, o, n, last string, tags bool) (mirror.Result, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.fail != nil {

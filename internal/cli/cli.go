@@ -26,6 +26,11 @@ Usage: gitsync [-c config.toml] <command>
   run        run the daemon (--dry-run to only log what would happen)
   sync       mirror everything once and exit (owner/name ... for just some)
   status     show what has been synced
+  repos      choose which repositories are synced (interactive)
+  why        explain why a repository is or is not synced
+  plan       show what the next sync would do, changing nothing
+  report     pull requests on the mirrors and repos that exist only on GitHub
+  config     show or change settings, apply a profile
   hooks      create the webhooks on the git server (--force, --remove)
   install    install as a systemd service
   uninstall  remove the systemd service
@@ -38,7 +43,7 @@ type command func(cfgPath string, args []string) (int, error)
 
 var commands = map[string]command{
 	"run": cmdRun, "sync": cmdSync, "check": cmdCheck, "status": cmdStatus,
-	"hooks": cmdHooks, "init": cmdInit, "install": cmdInstall, "uninstall": cmdUninstall,
+	"hooks": cmdHooks, "repos": cmdRepos, "config": cmdConfig, "why": cmdWhy, "plan": cmdPlan, "report": cmdReport, "init": cmdInit, "install": cmdInstall, "uninstall": cmdUninstall,
 }
 
 func Run(version string, args []string) int {

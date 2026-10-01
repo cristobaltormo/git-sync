@@ -189,7 +189,7 @@ func TestMirrorPushesThenSkipsWhenNothingChanged(t *testing.T) {
 	g := New(cfg, local{}, false)
 	repo := &forge.Repo{ID: 7, Owner: "alice", Name: "site", Website: srcDir}
 
-	first, err := g.Mirror(repo, "alice", "site", "")
+	first, err := g.Mirror(repo, "alice", "site", "", true)
 	if err != nil || first.Summary != "1 ref(s) updated" || first.Refs == "" {
 		t.Fatalf("first push: %+v %v", first, err)
 	}
@@ -200,14 +200,14 @@ func TestMirrorPushesThenSkipsWhenNothingChanged(t *testing.T) {
 
 	// nothing new: no push at all, even if the destination were unreachable
 	os.RemoveAll(filepath.Join(ghRoot, "alice", "site.git"))
-	again, err := g.Mirror(repo, "alice", "site", first.Refs)
+	again, err := g.Mirror(repo, "alice", "site", first.Refs, true)
 	if err != nil || again.Summary != "up to date" || again.Refs != first.Refs {
 		t.Fatalf("second run: %+v %v", again, err)
 	}
 
 	gitIn(t, srcDir, "commit", "-q", "--allow-empty", "-m", "two")
 	gitIn(t, root, "init", "-q", "--bare", filepath.Join(ghRoot, "alice", "site.git"))
-	next, err := g.Mirror(repo, "alice", "site", first.Refs)
+	next, err := g.Mirror(repo, "alice", "site", first.Refs, true)
 	if err != nil || next.Refs == first.Refs || next.Summary == "up to date" {
 		t.Fatalf("a new commit must be pushed: %+v %v", next, err)
 	}

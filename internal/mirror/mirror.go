@@ -182,7 +182,7 @@ type Result struct {
 
 // last is the Refs of the previous successful push; when the fetch brings nothing new the
 // push is skipped. Pass "" to push regardless.
-func (g *Git) Mirror(r *forge.Repo, ghOwner, ghName, last string) (Result, error) {
+func (g *Git) Mirror(r *forge.Repo, ghOwner, ghName, last string, tags bool) (Result, error) {
 	if g.dry {
 		logx.Infof("dry-run: mirror %s -> %s/%s", r.Full(), ghOwner, ghName)
 		return Result{Summary: "dry-run"}, nil
@@ -203,7 +203,7 @@ func (g *Git) Mirror(r *forge.Repo, ghOwner, ghName, last string) (Result, error
 	dst := fmt.Sprintf("%s/%s/%s.git", strings.TrimRight(g.cfg.GitHub.GitURL, "/"), ghOwner, ghName)
 	refs := []string{"+refs/heads/*:refs/heads/*"}
 	kinds := []string{"refs/heads"}
-	if g.cfg.Sync.Tags {
+	if tags {
 		refs = append(refs, "+refs/tags/*:refs/tags/*")
 		kinds = append(kinds, "refs/tags")
 	}

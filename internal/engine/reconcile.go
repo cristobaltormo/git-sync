@@ -50,7 +50,16 @@ func (e *Engine) reconcileRepos(repos []*forge.Repo, verify bool, why string) {
 	for _, repo := range repos {
 		seen[repo.ID] = true
 		ent, has := e.state.get(repo.ID)
-		if ok, _ := e.Selected(repo); !ok {
+		v := e.Decide(repo)
+		if v.Pending {
+			e.markPending(repo, ent, has)
+			continue
+		}
+		if has && ent.Pending != 0 {
+			e.state.update(repo.ID, false, func(x *Entry) { x.Pending = 0 })
+			e.state.save()
+		}
+		if !v.Sync {
 			if has && ent.Managed && !ent.Excluded {
 				e.Enqueue(&Job{Key: key(repo.ID), Repo: repo, Why: why})
 			}
@@ -85,6 +94,19 @@ func (e *Engine) reconcileRepos(repos []*forge.Repo, verify bool, why string) {
 			e.handleMissing(id, x)
 		}
 	}
+}
+
+func (e *Engine) markPending(repo *forge.Repo, ent Entry, has bool) {
+	if has && ent.Pending != 0 {
+		return
+	}
+	now := time.Now().Unix()
+	e.state.update(repo.ID, true, func(x *Entry) {
+		x.Owner, x.Name, x.Pending = repo.Owner, repo.Name, now
+	})
+	e.state.save()
+	logx.Infof("%s: new repository, not synced until you decide (run `gitsync repos`)", repo.Full())
+	e.notify(Event{Kind: EventPending, Repo: repo.Full()})
 }
 
 func (e *Engine) nextRetry() (time.Time, bool) {

@@ -51,3 +51,13 @@ func TestMissingConfigPointsToInit(t *testing.T) {
 		t.Fatalf("got %d %q", code, errText)
 	}
 }
+
+func TestChooseProfileFlag(t *testing.T) {
+	p, err := chooseProfile("team")
+	if err != nil || p.Name != "team" {
+		t.Fatalf("got %v %v", p.Name, err)
+	}
+	if _, err := chooseProfile("nope"); err == nil {
+		t.Fatal("an unknown profile must be refused")
+	}
+}

@@ -88,10 +88,36 @@ visibility = %t
 on_delete = %s
 `
 
+func chooseProfile(flagValue string) (config.Profile, error) {
+	if flagValue != "" {
+		p, ok := config.FindProfile(flagValue)
+		if !ok {
+			return p, config.Errorf("no profile called %q (personal, team, careful)", flagValue)
+		}
+		return p, nil
+	}
+	fmt.Println("\nHow should repositories that appear later be handled?")
+	for i, p := range config.Profiles {
+		fmt.Printf("  %d) %s\n", i+1, p.Describe())
+	}
+	for {
+		v := strings.ToLower(ask("Choose one", "personal", false))
+		if n, err := strconv.Atoi(v); err == nil && n >= 1 && n <= len(config.Profiles) {
+			return config.Profiles[n-1], nil
+		}
+		if p, ok := config.FindProfile(v); ok {
+			return p, nil
+		}
+		fmt.Println("Type a number or a name from the list.")
+	}
+}
+
 func cmdInit(cfgPath string, args []string) (int, error) {
 	var force *bool
+	var profile *string
 	path, _, err := flags("init", cfgPath, args, func(fs *flag.FlagSet) {
 		force = fs.Bool("force", false, "overwrite an existing config")
+		profile = fs.String("profile", "", "personal, team or careful: skip the question about new repositories")
 	})
 	if err != nil {
 		return 2, err
@@ -162,6 +188,10 @@ func cmdInit(cfgPath string, args []string) (int, error) {
 	if yes("When a repo is deleted on the source, delete it on GitHub too? (no = archive it)", true) {
 		onDelete = "delete"
 	}
+	chosen, err := chooseProfile(*profile)
+	if err != nil {
+		return 2, err
+	}
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return 1, err
@@ -169,8 +199,22 @@ func cmdInit(cfgPath string, args []string) (int, error) {
 	defer f.Close()
 	fmt.Fprintf(f, template, quote(typ), quote(url), quote(srcToken), quote(ghToken),
 		strings.Join(lines, "\n"), port, quote(secret), vis, quote(onDelete))
-	fmt.Printf("\nWrote %s (only you can read it).\n", path)
+	f.Close()
+	set := map[string]string{}
+	for k, v := range chosen.Set {
+		if strings.HasPrefix(k, "filter.") {
+			set[k] = v
+		}
+	}
+	if err := config.SetValues(path, set); err != nil {
+		return 1, err
+	}
+	fmt.Printf("\nWrote %s (only you can read it), profile %s.\n", path, chosen.Name)
 	fmt.Println("Next: `gitsync check`, then `gitsync run --dry-run` to see what it would do,")
+	if chosen.Name != "personal" {
+		fmt.Println("then `gitsync repos` to pick the repositories to sync (nothing is synced until you do),")
+	}
 	fmt.Println("then `gitsync run`, or `sudo gitsync install` to keep it running.")
+	fmt.Println("Change anything later with `gitsync repos`, `gitsync config` or by editing the file.")
 	return 0, nil
 }

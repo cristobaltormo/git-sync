@@ -52,7 +52,11 @@ func (e *Engine) withinDeleteLimit(limit int) bool {
 }
 
 func (e *Engine) applyRemoval(id int64, x Entry) {
-	sy := e.Config().Sync
+	cfg := e.Config()
+	sy := cfg.Sync
+	if r := cfg.Repos.Rule(x.Owner + "/" + x.Name); r != nil && r.OnDelete != "" {
+		sy.OnDelete = r.OnDelete
+	}
 	name := x.GHOwner + "/" + x.GHName
 	switch sy.OnDelete {
 	case "delete":

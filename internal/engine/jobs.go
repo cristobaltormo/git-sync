@@ -94,6 +94,9 @@ func (e *Engine) recordFailure(job *Job, err error) {
 		}
 		x.RetryAt = time.Now().Add(delay).Unix()
 	})
+	if attempts == 3 && !busy {
+		e.notify(Event{Kind: EventFailing, Repo: name, Info: err.Error()})
+	}
 	switch {
 	case busy:
 		logx.Warnf("%s: GitHub is still busy with a previous change, will retry shortly (%v)", name, err)

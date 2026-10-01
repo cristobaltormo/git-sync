@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -52,7 +53,9 @@ func cmdRun(cfgPath string, args []string) (int, error) {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	go reloadOnHUP(file, cfg, a)
+	r := &reloader{file: file, cur: cfg, a: a, stamp: cfg.Stamp()}
+	a.eng.OnTick = r.checkFiles
+	go r.onHUP()
 	go a.eng.PollLoop(ctx)
 
 	<-ctx.Done()
@@ -64,19 +67,44 @@ func cmdRun(cfgPath string, args []string) (int, error) {
 	return 0, nil
 }
 
-func reloadOnHUP(file string, cur *config.Config, a *app) {
+type reloader struct {
+	file  string
+	cur   *config.Config
+	a     *app
+	mu    sync.Mutex
+	stamp string
+}
+
+func (r *reloader) reload() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	st := r.cur.Stamp()
+	next, err := config.Load(r.file)
+	r.stamp = st
+	if err != nil {
+		logx.Errorf("reload failed, keeping the old config: %v", err)
+		return
+	}
+	if next.Listen.Host != r.cur.Listen.Host || next.Listen.Port != r.cur.Listen.Port {
+		logx.Warnf("listen address changed: restart needed for that part")
+	}
+	r.a.eng.Reload(next)
+	logx.Infof("config reloaded")
+}
+
+func (r *reloader) checkFiles() {
+	r.mu.Lock()
+	changed := r.stamp != r.cur.Stamp()
+	r.mu.Unlock()
+	if changed {
+		r.reload()
+	}
+}
+
+func (r *reloader) onHUP() {
 	hup := make(chan os.Signal, 1)
 	signal.Notify(hup, syscall.SIGHUP)
 	for range hup {
-		next, err := config.Load(file)
-		if err != nil {
-			logx.Errorf("reload failed, keeping the old config: %v", err)
-			continue
-		}
-		if next.Listen.Host != cur.Listen.Host || next.Listen.Port != cur.Listen.Port {
-			logx.Warnf("listen address changed: restart needed for that part")
-		}
-		a.eng.Reload(next)
-		logx.Infof("config reloaded")
+		r.reload()
 	}
 }

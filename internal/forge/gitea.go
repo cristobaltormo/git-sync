@@ -49,6 +49,22 @@ type giteaRepo struct {
 	Empty         bool     `json:"empty"`
 	Topics        []string `json:"topics"`
 	UpdatedAt     string   `json:"updated_at"`
+	Permissions   *struct {
+		Admin bool `json:"admin"`
+		Push  bool `json:"push"`
+	} `json:"permissions"`
+}
+
+func (g *giteaRepo) role() string {
+	switch {
+	case g.Permissions == nil:
+		return ""
+	case g.Permissions.Admin:
+		return RoleAdmin
+	case g.Permissions.Push:
+		return RoleWrite
+	}
+	return RoleRead
 }
 
 func (g *giteaRepo) repo() *Repo {
@@ -67,7 +83,7 @@ func (g *giteaRepo) repo() *Repo {
 		ID: g.ID, Owner: owner, Name: name, Private: g.Private,
 		Description: strings.TrimSpace(g.Description), Website: strings.TrimSpace(g.Website),
 		Archived: g.Archived, DefaultBranch: g.DefaultBranch, Fork: g.Fork, Mirror: g.Mirror,
-		Empty: g.Empty, Topics: g.Topics, Updated: g.UpdatedAt,
+		Empty: g.Empty, Topics: g.Topics, Updated: g.UpdatedAt, Role: g.role(),
 	}
 }
 

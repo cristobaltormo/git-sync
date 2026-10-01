@@ -168,7 +168,7 @@ type vanishingMirror struct {
 	src *fakeSource
 }
 
-func (m *vanishingMirror) Mirror(r *forge.Repo, o, n, last string) (mirror.Result, error) {
+func (m *vanishingMirror) Mirror(r *forge.Repo, o, n, last string, tags bool) (mirror.Result, error) {
 	delete(m.src.repos, r.ID)
 	return mirror.Result{}, fmt.Errorf("git fetch failed: 404")
 }

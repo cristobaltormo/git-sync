@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/cristobaltormo/git-sync/internal/config"
 	"github.com/cristobaltormo/git-sync/internal/github"
@@ -31,11 +32,14 @@ type Entry struct {
 	Excluded      bool         `json:"excluded,omitempty"`
 	Hook          string       `json:"hook,omitempty"`
 	RefusedBranch string       `json:"refused_branch,omitempty"`
+	Pending       int64        `json:"pending,omitempty"`
 }
 
 type State struct {
 	Version    int               `json:"version"`
 	SystemHook int64             `json:"system_hook,omitempty"`
+	Pulls      map[string]int64  `json:"pulls,omitempty"`
+	PullsReady bool              `json:"pulls_ready,omitempty"`
 	Repos      map[string]*Entry `json:"repos"`
 }
 
@@ -176,3 +180,37 @@ func (e *Engine) Entries() map[int64]Entry { return e.state.all() }
 func (e *Engine) SystemHook() int64 { return e.state.systemHook() }
 
 func (e *Engine) SetSystemHook(id int64) { e.state.setSystemHook(id) }
+
+func (s *stateStore) pulls() (map[string]int64, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	cp := make(map[string]int64, len(s.data.Pulls))
+	for k, v := range s.data.Pulls {
+		cp[k] = v
+	}
+	return cp, s.data.PullsReady
+}
+
+func (s *stateStore) markPull(key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.data.Pulls == nil {
+		s.data.Pulls = map[string]int64{}
+	}
+	if _, ok := s.data.Pulls[key]; !ok {
+		s.data.Pulls[key] = time.Now().Unix()
+	}
+}
+
+func (s *stateStore) finishPulls(open map[string]bool, complete bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if complete {
+		for k := range s.data.Pulls {
+			if !open[k] {
+				delete(s.data.Pulls, k)
+			}
+		}
+	}
+	s.data.PullsReady = s.data.PullsReady || complete
+}

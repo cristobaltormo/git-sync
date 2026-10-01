@@ -65,6 +65,8 @@ type Filter struct {
 	SkipMirrors  bool     `toml:"skip_mirrors"`
 	SkipArchived bool     `toml:"skip_archived"`
 	SkipPrivate  bool     `toml:"skip_private"`
+	Scope        string   `toml:"scope"`
+	NewRepos     string   `toml:"new_repos"`
 }
 
 type Hooks struct {
@@ -72,7 +74,19 @@ type Hooks struct {
 }
 
 type Paths struct {
-	StateDir string `toml:"state_dir"`
+	StateDir  string `toml:"state_dir"`
+	ReposFile string `toml:"repos_file"`
+}
+
+type Notify struct {
+	URL    string   `toml:"url"`
+	Format string   `toml:"format"`
+	Events []string `toml:"events"`
+}
+
+type PullRequests struct {
+	Mode    string `toml:"mode"`
+	Message string `toml:"message"`
 }
 
 type Log struct {
@@ -89,8 +103,11 @@ type Config struct {
 	Hooks    Hooks             `toml:"hooks"`
 	Paths    Paths             `toml:"paths"`
 	Log      Log               `toml:"log"`
+	Notify   Notify            `toml:"notify"`
+	Pulls    PullRequests      `toml:"pull_requests"`
 
 	Path         string `toml:"-"`
+	Repos        *Repos `toml:"-"`
 	lowerAccount map[string]string
 }
 
@@ -128,9 +145,11 @@ func Default() *Config {
 			Visibility: true, Metadata: true, DefaultBranch: true, Archived: true, Tags: true,
 			OnDelete: "delete", DeleteGrace: 10, DeleteLimit: 5, GitTimeout: 1800,
 		},
-		Filter: Filter{SkipMirrors: true},
+		Filter: Filter{SkipMirrors: true, Scope: "all", NewRepos: "sync"},
 		Hooks:  Hooks{Mode: "auto"},
 		Log:    Log{Level: "info"},
+		Notify: Notify{Format: "json", Events: []string{"pending", "failing", "pull_request"}},
+		Pulls:  PullRequests{Mode: "leave"},
 	}
 }
 
@@ -207,8 +226,30 @@ func Load(path string) (*Config, error) {
 	if err := c.Finish(); err != nil {
 		return nil, err
 	}
+	repos, err := LoadRepos(ReposPath(c))
+	if err != nil {
+		return nil, err
+	}
+	c.Repos = repos
 	return c, nil
 }
+
+func stamp(p string) string {
+	st, err := os.Stat(p)
+	if err != nil {
+		return "-"
+	}
+	return strconv.FormatInt(st.ModTime().UnixNano(), 36) + ":" + strconv.FormatInt(st.Size(), 36)
+}
+
+func (c *Config) Stamp() string {
+	if c.Path == "" {
+		return ""
+	}
+	return stamp(c.Path) + "|" + stamp(ReposPath(c))
+}
+
+func isWindows() bool { return runtime.GOOS == "windows" }
 
 func readSecretFile(p string) (string, error) {
 	b, err := os.ReadFile(p)
@@ -303,6 +344,26 @@ func (c *Config) validate() error {
 	}
 	if !oneOf(c.Sync.OnDelete, "delete", "archive", "ignore") {
 		return Errorf("sync.on_delete must be delete, archive or ignore")
+	}
+	if !oneOf(c.Filter.Scope, "all", "admin") {
+		return Errorf("filter.scope must be all or admin")
+	}
+	if !oneOf(c.Filter.NewRepos, "sync", "review", "ignore") {
+		return Errorf("filter.new_repos must be sync, review or ignore")
+	}
+	if c.Notify.URL != "" && !IsHTTPURL(c.Notify.URL) {
+		return Errorf("notify.url must be an http(s) URL")
+	}
+	if !oneOf(c.Notify.Format, "json", "text", "slack", "discord") {
+		return Errorf("notify.format must be json, text, slack or discord")
+	}
+	for _, ev := range c.Notify.Events {
+		if !oneOf(ev, "pending", "failing", "pull_request") {
+			return Errorf("notify.events: unknown event %q (pending, failing, pull_request)", ev)
+		}
+	}
+	if !oneOf(c.Pulls.Mode, "leave", "comment") {
+		return Errorf("pull_requests.mode must be leave or comment")
 	}
 	if !oneOf(c.Hooks.Mode, "auto", "system", "repo", "none") {
 		return Errorf("hooks.mode must be auto, system, repo or none")
