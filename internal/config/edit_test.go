@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -64,7 +65,7 @@ func TestSetValuesKeepsEverythingElse(t *testing.T) {
 		t.Errorf("the old multi-line array was not replaced:\n%s", out)
 	}
 	st, _ := os.Stat(p)
-	if st.Mode().Perm() != 0o600 {
+	if runtime.GOOS != "windows" && st.Mode().Perm() != 0o600 {
 		t.Errorf("permissions changed to %v", st.Mode().Perm())
 	}
 	c, err := Load(p)
