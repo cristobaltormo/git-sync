@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.2.0 (unreleased)
+
+Choosing what to sync, and a better way to do it. Existing configs keep working
+unchanged.
+
+- `gitsync repos`: a full-screen selector for repositories and settings, with
+  search, views, per-repository options and profiles. In a pipe or script it prints
+  a list, and `allow`, `ignore`, `reset`, `set` do the same from the command line.
+- `filter.new_repos` (`sync`, `review`, `ignore`): repositories added later can
+  wait for your decision instead of syncing. Repositories already synced are never
+  affected.
+- `filter.scope = "admin"`: leave alone repositories where you are only a
+  collaborator.
+- `repos.toml`: per-repository decisions and options (GitHub name, keep private,
+  tags, metadata, what to do on removal).
+- Profiles `personal`, `team` and `careful`, asked by `gitsync init` and applied
+  with `gitsync config profile`.
+- `gitsync why`, `gitsync plan`, `gitsync report` and `gitsync config
+  show/get/set/edit`; `set` keeps comments and refuses anything that would make
+  the file invalid.
+- The daemon reloads `config.toml` and `repos.toml` when they change, with no
+  signal and no extra wake-ups.
+- `[notify]`: a message to a webhook (JSON, plain text, Slack, Discord, ntfy) for
+  new repositories, repeated failures and pull requests on mirrors.
+- `[pull_requests]`: optionally leave one note on pull requests opened on a
+  mirror. They are never merged or closed.
+- New dependency: `golang.org/x/term`, used only by the selector.
+
 ## 1.0.1 (2026-09-27)
 
 - Each release now also publishes a multi-arch Docker image

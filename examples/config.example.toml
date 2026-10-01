@@ -122,6 +122,17 @@ skip_mirrors = true
 skip_archived = false
 # Sync public repos only.
 skip_private = false
+# "all", or "admin" to leave alone the repos where you are only a collaborator
+# (Forgejo, Gitea, Gogs, Codeberg report the role; elsewhere it is unknown and
+# the repo is kept).
+scope = "all"
+# What happens to a repo gitsync has never synced:
+#   "sync"    start right away
+#   "review"  wait until you decide (gitsync repos), and send a notification
+#   "ignore"  leave it alone, only repos you pick are synced
+# Repos that are already synced keep syncing when you change this. Decisions for
+# single repos live in repos.toml, see examples/repos.example.toml.
+new_repos = "sync"
 
 [hooks]
 # auto    one system-wide webhook when the token is an admin (Forgejo, Gitea,
@@ -136,7 +147,27 @@ mode = "auto"
 # Where state.json and the git mirrors live. Default: /var/lib/gitsync as root
 # (or $STATE_DIRECTORY under systemd), ~/.local/state/gitsync otherwise.
 state_dir = ""
+# Where per-repo decisions and options live. Default: repos.toml next to this file.
+repos_file = ""
 
 [log]
 # debug, info, warn or error
 level = "info"
+
+[notify]
+# A message is POSTed here when a repo is waiting for you (new_repos = "review"),
+# keeps failing, or gets a pull request. Empty means no notifications.
+url = ""
+# json, text (plain body, works with ntfy), slack or discord
+format = "json"
+# pending, failing, pull_request
+events = ["pending", "failing", "pull_request"]
+
+[pull_requests]
+# What to do when a pull request is opened on a mirror. gitsync never merges or
+# closes them.
+#   "leave"    do nothing on GitHub
+#   "comment"  add one note saying the repo is a read-only mirror
+mode = "leave"
+# Text of the note. {url} and {repo} point at the source repository.
+message = ""

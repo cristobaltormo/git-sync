@@ -166,6 +166,29 @@ El filtro `topic` te permite decidir qué va a GitHub desde la propia interfaz d
 servidor git: añade el tema a un repo y empieza a sincronizarse, quítalo y deja
 de hacerlo. El tema en sí no se copia a GitHub.
 
+## Elegir qué se replica
+
+```
+gitsync repos
+```
+
+abre un selector en el terminal: cada repositorio con su casilla, búsqueda, una vista
+de los que esperan tu decisión y opciones por repositorio, como el nombre en GitHub.
+La barra espaciadora activa o desactiva uno, `w` guarda, y un gitsync en marcha lo
+aplica solo. Solo existe mientras está abierto, así que no gasta nada el resto del
+tiempo. Lo mismo se puede hacer desde scripts: `gitsync repos allow`, `ignore`, `set`,
+`list --json`.
+
+Si otras personas pueden añadirte a sus proyectos, usa `new_repos = "review"`: los
+repositorios que gitsync no había visto esperan tu decisión en lugar de publicarse, y
+lo que ya replica sigue replicándose. `gitsync init` ofrece perfiles ya preparados
+(`personal`, `team`, `careful`) y `gitsync config profile` aplica uno más tarde.
+`gitsync why <repo>` explica la decisión de un repositorio, `gitsync plan` muestra
+qué haría la siguiente sincronización sin hacerlo, y `gitsync report` lista los pull
+requests abiertos en tus réplicas y los repositorios que solo existen en GitHub.
+
+Todo está descrito en [docs/choosing-repos.md](docs/choosing-repos.md) (en inglés).
+
 ## Cosas que conviene saber
 
 La copia en GitHub es exacta. Las ramas y etiquetas se suben a la fuerza y se
@@ -246,11 +269,17 @@ fichero: `GITSYNC_SOURCE_TOKEN`, `GITSYNC_GITHUB_TOKEN` y
 | `gitsync run [--dry-run]` | el demonio |
 | `gitsync sync [propietario/nombre ...]` | replica una vez y termina, todo o solo algunos repos |
 | `gitsync status` | cada repo, a dónde va, cuándo se sincronizó por última vez, último error |
+| `gitsync repos` | elegir qué se replica: selector, `list`, `allow`, `ignore`, `reset`, `set` |
+| `gitsync why <repo>` | por qué un repo se replica o no, y cómo cambiarlo |
+| `gitsync plan` | qué haría la siguiente sincronización, sin cambiar nada |
+| `gitsync report` | pull requests en réplicas, repos que solo existen en GitHub |
+| `gitsync config` | `show`, `get`, `set`, `edit`, `profile`, `test-notify` |
 | `gitsync hooks [--force] [--remove]` | crea, reescribe o elimina los webhooks |
 | `gitsync install` / `uninstall` | servicio systemd en Linux, tarea programada en Windows |
 
 `-c fichero.toml` elige otra configuración. Sin él se prueban `./config.toml` y
-después `/etc/gitsync/config.toml`. `kill -HUP` recarga la configuración.
+después `/etc/gitsync/config.toml`. El demonio recarga la configuración y `repos.toml`
+cuando cambian; `kill -HUP` lo fuerza.
 
 ## Uso de recursos
 

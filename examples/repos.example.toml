@@ -1,0 +1,24 @@
+# Per-repository decisions and options. `gitsync repos` writes this file; you can
+# also edit it by hand. A running gitsync reloads it by itself.
+#
+# The key is "owner/name" on the source, in lowercase.
+
+# Always sync this one, even if a filter would skip it.
+[repos."alice/site"]
+sync = true
+
+# Never sync this one.
+[repos."alice/scratch"]
+sync = false
+note = "experiments, not for GitHub"
+
+# Sync it under another name, keep the copy private and leave tags out.
+[repos."my-org/internal-tools"]
+sync = true
+name = "tools-mirror"
+keep_private = true
+tags = false
+
+# Archive the GitHub copy instead of deleting it if this repo is removed.
+[repos."my-org/website"]
+on_delete = "archive"

@@ -164,6 +164,28 @@ The `topic` filter lets you decide what goes to GitHub from the git server's own
 UI: add the topic to a repo and it starts syncing, remove it and it stops. The
 topic itself is not copied to GitHub.
 
+## Choosing what to sync
+
+```
+gitsync repos
+```
+
+opens a selector in your terminal: every repository with a checkbox, search, a view
+of the ones waiting for you, and per-repository options such as the name on GitHub.
+Space switches one, `w` writes, and a running gitsync applies it by itself. It only
+exists while it is open, so it costs nothing the rest of the time. The same can be
+done from scripts: `gitsync repos allow`, `ignore`, `set`, `list --json`.
+
+If others can add you to their projects, set `new_repos = "review"`: repositories
+gitsync has never seen wait for your decision instead of being published, and
+anything it already syncs keeps syncing. `gitsync init` offers ready-made profiles
+(`personal`, `team`, `careful`) and `gitsync config profile` applies one later.
+`gitsync why <repo>` explains the decision for one repository, `gitsync plan` shows
+what the next sync would do without doing it, and `gitsync report` lists pull
+requests on your mirrors and repositories that exist only on GitHub.
+
+Everything is described in [docs/choosing-repos.md](docs/choosing-repos.md).
+
 ## Things worth knowing
 
 The GitHub copy is exact. Branches and tags are force-pushed and pruned, so
@@ -238,11 +260,17 @@ from the environment instead of the file: `GITSYNC_SOURCE_TOKEN`,
 | `gitsync run [--dry-run]` | the daemon |
 | `gitsync sync [owner/name ...]` | mirror once and exit, everything or just some repos |
 | `gitsync status` | each repo, where it goes, when it last synced, last error |
+| `gitsync repos` | choose what is synced: selector, `list`, `allow`, `ignore`, `reset`, `set` |
+| `gitsync why <repo>` | why a repo is or is not synced, and how to change it |
+| `gitsync plan` | what the next sync would do, changing nothing |
+| `gitsync report` | pull requests on mirrors, repos that exist only on GitHub |
+| `gitsync config` | `show`, `get`, `set`, `edit`, `profile`, `test-notify` |
 | `gitsync hooks [--force] [--remove]` | create, rewrite or remove the webhooks |
 | `gitsync install` / `uninstall` | systemd service on Linux, scheduled task on Windows |
 
 `-c file.toml` picks another config. Without it, `./config.toml` and then
-`/etc/gitsync/config.toml` are tried. `kill -HUP` reloads the config.
+`/etc/gitsync/config.toml` are tried. The daemon reloads the config and `repos.toml`
+when they change; `kill -HUP` forces it.
 
 ## Resource use
 
