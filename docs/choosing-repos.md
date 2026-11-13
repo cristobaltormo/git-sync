@@ -95,7 +95,7 @@ gitsync repos set alice/site keep_private=       # clears one option
 | `name` | Name of the repository on GitHub. Changing it later renames the existing copy in place. |
 | `keep_private` | The GitHub copy never becomes public, even if the source is. |
 | `tags` | Mirror tags for this repository, overriding `sync.tags`. |
-| `metadata` | Copy description and topics, overriding `sync.metadata`. |
+| `metadata` | Copy description, website and topics, overriding `sync.metadata`. |
 | `prune` | `false` keeps branches that exist only on GitHub. By default the push removes them so GitHub equals the source. |
 | `on_delete` | `delete`, `archive` or `ignore` when it disappears from the source. |
 | `note` | Free text for you. |
@@ -151,17 +151,19 @@ and the repositories that exist only on GitHub, so nothing goes unnoticed.
 | `pull_request` | A pull request was opened on a mirror |
 
 `format` is `json` (a small object), `text` (plain body, works with ntfy), `slack`
-or `discord`. Delivery is best effort with a ten second timeout, nothing is queued,
-and nothing is sent in `--dry-run`. `gitsync config test-notify` sends a sample.
+or `discord`. Delivery is best effort through the same HTTP client as the API
+requests: 60 seconds at most per request, 15 to connect, and up to 3 retries.
+Nothing is queued, and nothing is sent in `--dry-run`. `gitsync config test-notify` sends a sample.
 
 ## Changing things while it runs
 
 The daemon looks at the modification time of `config.toml` and `repos.toml`
 whenever it polls (a `stat` call) and reloads when either changed, so a change
 made by `gitsync repos`, `gitsync config` or by hand applies within
-`poll_interval` seconds. With `poll_interval = 0`, or after changing `listen.*`,
-use `systemctl reload gitsync` or restart. A file with a mistake is rejected as a
-whole and the previous settings stay active.
+`poll_interval` seconds. With `poll_interval = 0`, use `systemctl reload gitsync`.
+Changes to `listen.host` and `listen.port` need a restart; a reload does not apply
+them. A file with a mistake is rejected as a whole and the previous settings stay
+active.
 
 ## Cost
 

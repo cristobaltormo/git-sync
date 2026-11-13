@@ -3,10 +3,11 @@
 ## 2.0.0 (2026-11-13)
 
 gitsync is rewritten in Rust. Commands, flags, configuration keys and defaults,
-the webhook endpoint, log lines and exit codes stay as in 1.3.0, and so do the
-files it keeps: `config.toml`, `repos.toml` and `state.json` are read and written
+the webhook endpoint and exit codes stay as in 1.3.0, and so do the files it
+keeps: `config.toml`, `repos.toml` and `state.json` are read and written
 in the same format. Upgrading means replacing the binary, and going back to 1.3.0
-is the same swap.
+is the same swap. Most log lines are unchanged; the few messages that changed are
+in the list below.
 
 - Same release files for the same seven platforms, plus `SHA256SUMS`, and the same
   Docker image. Linux binaries are static (musl). TLS uses rustls with the system
@@ -67,7 +68,6 @@ Fixes:
 - A webhook arriving during `gitsync sync` no longer drops the forced push.
 - A changed role (`filter.scope = "admin"`) is noticed on the next poll; topics
   listed in a different order no longer cause a rescan.
-- `sync.workers = 0` starts one worker instead of none.
 - Gitea and Forgejo: a transient error while checking the system webhook no longer
   creates a duplicate, and servers that cap pages below 50 rows are listed in
   full. Gogs: one request less per listing. OneDev: webhooks that are not

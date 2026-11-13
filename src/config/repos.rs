@@ -232,7 +232,7 @@ const REPOS_HEADER: &str = r#"# Per-repository decisions and overrides, written 
 #   name         repository name to use on GitHub
 #   keep_private never make the GitHub copy public
 #   tags         mirror tags (overrides sync.tags)
-#   metadata     copy description and topics (overrides sync.metadata)
+#   metadata     copy description, website and topics (overrides sync.metadata)
 #   prune        false: keep branches that exist only on GitHub (pull request heads)
 #   on_delete    delete, archive or ignore when it disappears from the source
 #   note         free text for you

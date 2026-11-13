@@ -45,11 +45,12 @@ Usage: gitsync [-c config.toml] <command>
   report     pull requests on the mirrors and repos that exist only on GitHub
   config     show or change settings, apply a profile
   hooks      create the webhooks on the git server (--force, --remove)
-  install    install as a systemd service
-  uninstall  remove the systemd service
+  install    install as a service: systemd on Linux, a scheduled task on Windows
+  uninstall  remove what install set up
   version    print the version
 
-The config is looked for in ./config.toml and /etc/gitsync/config.toml.
+Without -c, the config is looked for in $GITSYNC_CONFIG, ./config.toml and
+/etc/gitsync/config.toml (%ProgramData%\\gitsync\\config.toml on Windows).
 ";
 
 type Command = fn(&str, &[String]) -> Result<i32, Error>;

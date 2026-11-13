@@ -31,7 +31,7 @@ If your code lives on Forgejo, Gitea, GitLab or another server you run yourself,
 - **The whole repository, not only the commits.** New repositories are created on GitHub, renames are applied in place so stars and links survive, and visibility, description, website, topics, default branch and the archived flag follow the source.
 - **Careful with deletions.** A repository that disappears is only acted on after `delete_grace` seconds and after asking the server for it directly, at most `delete_limit` per hour, and never on an account other than the one mapped. You can archive instead of deleting, or do nothing.
 - **You choose what goes public.** Filters by owner, pattern, topic, fork or role; a selector in the terminal; and a review mode where new repositories wait for your decision instead of being published. A private repository never becomes public.
-- **Light.** About 4.3 MiB of resident memory and 15 ms of CPU per minute while polling 30 repositories in three accounts, from a 3.2 MiB static binary. See the [benchmarks](docs/benchmarks.md).
+- **Light.** Measured on 2.0, about 4.3 MiB of resident memory and 15 ms of CPU per minute while polling 30 repositories in three accounts. The static release binary is about 3.2 MiB. See the [benchmarks](docs/benchmarks.md).
 - **Tokens stay out of sight.** They are passed to git through its environment, never in a URL, a command line or a `.git/config`, each scoped to its own host, and removed from every log line.
 - **Runs anywhere.** Linux (amd64, arm64, armv7), macOS, Windows and Docker. It installs itself as a systemd service or a Windows scheduled task, and its tests run on the three systems on every push.
 
@@ -57,11 +57,11 @@ Git servers send a webhook when someone pushes or creates or deletes a branch or
 | Change on the git server | Noticed through | On GitHub after |
 |---|---|---|
 | push, new or deleted branch, new tag | webhook | 2 to 5 seconds |
-| new repo | webhook or poll | 3 to 5 seconds |
+| new repo | webhook or poll | a few seconds, up to about 8 on Bitbucket Cloud |
 | visibility, description, website, topics, default branch, archived, rename | poll, or webhook where the server sends one | up to 5 seconds, plus the time to apply it |
-| repo deleted | poll, then a confirmation | about 15 seconds |
+| repo deleted | poll, then a confirmation | about 12 seconds |
 
-The poll lists your repositories every 5 seconds, about 3 KB per repository, and compares the fields that get mirrored with the previous listing. Only a repository that changed is synced. `poll_interval` can be raised, or set to 0 to rely on webhooks alone. Measured latencies for each server are in [docs/benchmarks.md](docs/benchmarks.md).
+The poll lists your repositories every 5 seconds and compares the fields that get mirrored with the previous listing. Only a repository that changed is synced. `poll_interval` can be raised, or set to 0 to rely on webhooks alone. Measured latencies for each server are in [docs/benchmarks.md](docs/benchmarks.md).
 
 ## Quick start
 
@@ -261,7 +261,7 @@ More in [docs/faq.md](docs/faq.md).
 
 ## Upgrading from 1.x
 
-Version 2.0 is a rewrite in Rust with the same commands, flags, configuration keys, defaults, webhook endpoint and log lines. It reads and writes `config.toml`, `repos.toml` and `state.json` in the same format, so upgrading is a matter of replacing the binary:
+Version 2.0 is a rewrite in Rust with the same commands, flags, configuration keys, defaults, webhook endpoint and exit codes. Most log lines are unchanged; the few messages that changed are listed in [CHANGELOG.md](CHANGELOG.md). It reads and writes `config.toml`, `repos.toml` and `state.json` in the same format, so upgrading is a matter of replacing the binary:
 
 ```sh
 sudo systemctl stop gitsync

@@ -4,10 +4,10 @@
 # writes a minimal file. Secrets can also come from a file (token_file,
 # secret_file) or from the environment (GITSYNC_SOURCE_TOKEN,
 # GITSYNC_GITHUB_TOKEN, GITSYNC_WEBHOOK_SECRET); the environment wins over the
-# file and the file over the value written here. Keep this file readable only by
-# the user that runs gitsync. On Windows write paths between single quotes,
-# 'C:\ProgramData\gitsync\source.token', because a backslash is an escape
-# inside double quotes.
+# value written here, and the file is read only when neither gives one. Keep
+# this file readable only by the user that runs gitsync. On Windows write paths
+# between single quotes, 'C:\ProgramData\gitsync\source.token', because a
+# backslash is an escape inside double quotes.
 
 [source]
 # forgejo, gitea, gogs, codeberg, gitlab, gitbucket, onedev,
@@ -19,10 +19,11 @@ type = "forgejo"
 url = "https://git.example.com"
 # API token of the source server. Read access to the repositories is enough to
 # mirror; webhooks additionally need write access to them, and an admin token
-# lets Forgejo, Gitea and GitLab use one system-wide webhook.
+# lets Forgejo and GitLab use one system-wide webhook.
 token = ""
 # token_file = "/etc/gitsync/source.token"
-# Only used by providers that need a user name next to the token.
+# Accepted for compatibility with older files and currently unused: every
+# provider, Gogs included, finds the user name through the API.
 # user = ""
 
 [github]
@@ -61,7 +62,7 @@ public_url = ""
 
 [sync]
 # Seconds between polls of the git server. Each poll lists the repos and compares
-# them with the last listing (about 3 KB per repo). It is what notices
+# them with the last listing. It is what notices
 # visibility, renames, descriptions, archiving and deletions, which webhooks
 # never announce, and it also catches pushes if a webhook gets lost. 0 turns
 # polling off: only webhooks remain, plus a safety listing every 5 minutes.
@@ -135,8 +136,9 @@ scope = "all"
 new_repos = "sync"
 
 [hooks]
-# auto    one system-wide webhook when the token is an admin (Forgejo, Gitea,
-#         GitLab), otherwise one per repo, created when the repo is first synced
+# auto    one system-wide webhook when the token is an admin on Forgejo or
+#         GitLab, otherwise one per repo, created when the repo is first synced;
+#         on Gitea always one per repo
 # system  only the system-wide webhook
 # repo    only per-repo webhooks
 # none    do not touch the git server; the poll alone catches everything, a push

@@ -41,13 +41,15 @@ before saving.
 ## Secrets
 
 The source token, the GitHub token and the webhook secret can each come from three
-places. The first one that is set wins:
+places, checked in this order. The first one that is set wins:
 
-| Secret | Environment variable | File | Key |
+| Secret | Environment variable | Key | File |
 |---|---|---|---|
-| source token | `GITSYNC_SOURCE_TOKEN` | `source.token_file` | `source.token` |
-| GitHub token | `GITSYNC_GITHUB_TOKEN` | `github.token_file` | `github.token` |
-| webhook secret | `GITSYNC_WEBHOOK_SECRET` | `listen.secret_file` | `listen.secret` |
+| source token | `GITSYNC_SOURCE_TOKEN` | `source.token` | `source.token_file` |
+| GitHub token | `GITSYNC_GITHUB_TOKEN` | `github.token` | `github.token_file` |
+| webhook secret | `GITSYNC_WEBHOOK_SECRET` | `listen.secret` | `listen.secret_file` |
+
+The file is only read when neither the environment nor the key gives a value.
 
 Values from the environment and from files are trimmed. A secret that contains
 control characters is refused.
@@ -60,9 +62,9 @@ control characters is refused.
 |---|---|---|---|
 | `type` | string | `"forgejo"` | `forgejo`, `gitea`, `gogs`, `codeberg`, `gitlab`, `gitbucket`, `onedev`, `bitbucket-cloud` or `bitbucket-server` (experimental). |
 | `url` | string | see meaning | Base URL of the server as this machine reaches it, used for the API and for git. `http://127.0.0.1:3000` is fine on the same host. Defaults to `https://codeberg.org`, `https://gitlab.com` and `https://bitbucket.org` for those types; required for the others. |
-| `token` | string | `""` | API token of the source server. Read access to the repositories is enough to mirror; webhooks also need write access to them, and an admin token lets Forgejo, Gitea and GitLab use one system-wide webhook. Required, from here, `token_file` or the environment. |
+| `token` | string | `""` | API token of the source server. Read access to the repositories is enough to mirror; webhooks also need write access to them, and an admin token lets Forgejo and GitLab use one system-wide webhook. Required, from the environment, here or `token_file`. |
 | `token_file` | string | `""` | File that holds the token. |
-| `user` | string | `""` | User name for the providers that need one next to the token. |
+| `user` | string | `""` | Accepted for compatibility with older files and currently unused: every provider, Gogs included, finds the user name through the API. |
 
 ### `[github]`
 
@@ -142,7 +144,7 @@ The order in which these are applied is in [choosing-repos.md](choosing-repos.md
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `mode` | string | `"auto"` | `auto`: one system-wide webhook when the token is an admin (Forgejo, Gitea, GitLab), otherwise one per repository, created when it is first synced. `system`: only the system-wide webhook. `repo`: only per-repository webhooks. `none`: do not touch the git server; the poll catches everything and a push takes up to `poll_interval` seconds longer. |
+| `mode` | string | `"auto"` | `auto`: one system-wide webhook when the token is an admin on Forgejo or GitLab, otherwise one per repository, created when it is first synced. On Gitea `auto` always uses per-repository webhooks. `system`: only the system-wide webhook. `repo`: only per-repository webhooks. `none`: do not touch the git server; the poll catches everything and a push takes up to `poll_interval` seconds longer. |
 
 ### `[paths]`
 
@@ -194,7 +196,7 @@ tags = false
 | `name` | string | source name | Name of the repository on GitHub: letters, digits, `.`, `_` and `-`, up to 100 characters. Changing it later renames the existing copy in place. |
 | `keep_private` | boolean | unset | `true` keeps the GitHub copy private even if the source is public. |
 | `tags` | boolean | `sync.tags` | Mirror tags for this repository. |
-| `metadata` | boolean | `sync.metadata` | Copy description and topics for this repository. |
+| `metadata` | boolean | `sync.metadata` | Copy description, website and topics for this repository. |
 | `prune` | boolean | `true` | `false` keeps branches that exist only on GitHub, for example the head branch of an open pull request. |
 | `on_delete` | string | `sync.on_delete` | `delete`, `archive` or `ignore` when the repository disappears from the source. |
 | `note` | string | `""` | Free text for you. |
@@ -213,6 +215,6 @@ gitsync repos set alice/site keep_private=     # clears one option
 | `GITSYNC_CONFIG` | Config file to use when `-c` is not given. |
 | `GITSYNC_SOURCE_TOKEN`, `GITSYNC_GITHUB_TOKEN`, `GITSYNC_WEBHOOK_SECRET` | Secrets, see above. |
 | `STATE_DIRECTORY` | Default state directory. systemd sets it from `StateDirectory=`. |
-| `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` | Proxy for API requests and notifications, also in lowercase. git commands follow git's own proxy configuration. |
+| `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` | Proxy for API requests and notifications, also in lowercase. git runs with `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` set to `/dev/null`, so an `http.proxy` in your gitconfig is ignored; git uses only these environment variables (`https_proxy`, `http_proxy`, `no_proxy`). |
 | `SSL_CERT_FILE`, `SSL_CERT_DIR` | On Linux, where to read the trusted certificates from instead of the usual system locations. |
 | `NO_COLOR` | Turns off colours in the terminal output. |

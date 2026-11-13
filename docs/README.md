@@ -14,6 +14,7 @@ Outside this folder: the [README](../README.md) for installing and a first run,
 [CHANGELOG.md](../CHANGELOG.md), [CONTRIBUTING.md](../CONTRIBUTING.md) and
 [SECURITY.md](../SECURITY.md).
 
-The images in [images/](images) are generated: `build.py` writes the diagram and the
-social preview, and `capture.py` records the terminal captures by running a release
+[`logo.svg`](images/logo.svg) is drawn by hand and is an input. The other images in
+[images/](images) are generated: `build.py` writes the diagram and the social
+preview, and `capture.py` records the terminal captures by running a release
 binary against fake local servers (`python3 docs/images/capture.py target/release/gitsync`).

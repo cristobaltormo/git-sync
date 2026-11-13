@@ -31,7 +31,7 @@ Si tu código vive en Forgejo, Gitea, GitLab u otro servidor que montas tú, Git
 - **El repositorio entero, no solo los commits.** Los repositorios nuevos se crean en GitHub, los renombres se aplican sobre el mismo repositorio para que las estrellas y los enlaces sigan funcionando, y la visibilidad, la descripción, la web, los temas, la rama por defecto y el estado de archivado siguen a la fuente.
 - **Cuidadoso al borrar.** Un repositorio que desaparece solo se toca pasados `delete_grace` segundos y después de preguntar por él directamente al servidor, como mucho `delete_limit` por hora, y nunca en una cuenta distinta de la configurada. Puedes archivar en lugar de borrar, o no hacer nada.
 - **Tú decides qué se publica.** Filtros por dueño, patrón, tema, fork o rol; un selector en la terminal; y un modo de revisión en el que los repositorios nuevos esperan tu decisión en lugar de publicarse. Un repositorio privado nunca se hace público.
-- **Ligero.** Unos 4,3 MiB de memoria residente y 15 ms de CPU por minuto sondeando 30 repositorios en tres cuentas, con un binario estático de 3,2 MiB. Mira las [mediciones](docs/benchmarks.md).
+- **Ligero.** Medido en la 2.0, unos 4,3 MiB de memoria residente y 15 ms de CPU por minuto sondeando 30 repositorios en tres cuentas. El binario estático de las releases ocupa unos 3,2 MiB. Mira las [mediciones](docs/benchmarks.md).
 - **Los tokens no se ven.** Se pasan a git por su entorno, nunca en una URL, una línea de comandos o un `.git/config`, cada uno limitado a su propio host, y se eliminan de cada línea del log.
 - **Funciona en cualquier sitio.** Linux (amd64, arm64, armv7), macOS, Windows y Docker. Se instala solo como servicio de systemd o como tarea programada de Windows, y sus tests pasan en los tres sistemas en cada push.
 
@@ -57,11 +57,11 @@ Los servidores git mandan un webhook cuando alguien hace push o crea o borra una
 | Cambio en el servidor git | Se detecta por | En GitHub tras |
 |---|---|---|
 | push, rama nueva o borrada, tag nuevo | webhook | 2 a 5 segundos |
-| repo nuevo | webhook o sondeo | 3 a 5 segundos |
+| repo nuevo | webhook o sondeo | unos segundos, hasta unos 8 en Bitbucket Cloud |
 | visibilidad, descripción, web, temas, rama por defecto, archivado, renombre | sondeo, o webhook donde el servidor lo manda | hasta 5 segundos, más lo que tarde en aplicarse |
-| repo borrado | sondeo, y luego una confirmación | unos 15 segundos |
+| repo borrado | sondeo, y luego una confirmación | unos 12 segundos |
 
-El sondeo lista tus repositorios cada 5 segundos, unos 3 KB por repositorio, y compara los campos que se replican con el listado anterior. Solo se sincroniza el repositorio que ha cambiado. `poll_interval` se puede subir, o poner a 0 para depender solo de los webhooks. Las latencias medidas en cada servidor están en [docs/benchmarks.md](docs/benchmarks.md).
+El sondeo lista tus repositorios cada 5 segundos y compara los campos que se replican con el listado anterior. Solo se sincroniza el repositorio que ha cambiado. `poll_interval` se puede subir, o poner a 0 para depender solo de los webhooks. Las latencias medidas en cada servidor están en [docs/benchmarks.md](docs/benchmarks.md).
 
 ## Inicio rápido
 
@@ -263,7 +263,7 @@ Más en [docs/faq.md](docs/faq.md).
 
 ## Actualizar desde 1.x
 
-La versión 2.0 es una reescritura en Rust con los mismos comandos, flags, claves de configuración, valores por defecto, endpoint del webhook y líneas de log. Lee y escribe `config.toml`, `repos.toml` y `state.json` con el mismo formato, así que actualizar consiste en cambiar el binario:
+La versión 2.0 es una reescritura en Rust con los mismos comandos, flags, claves de configuración, valores por defecto, endpoint del webhook y códigos de salida. La mayoría de las líneas de log no cambian; los pocos mensajes que sí lo hacen están en [CHANGELOG.md](CHANGELOG.md). Lee y escribe `config.toml`, `repos.toml` y `state.json` con el mismo formato, así que actualizar consiste en cambiar el binario:
 
 ```sh
 sudo systemctl stop gitsync

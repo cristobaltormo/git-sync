@@ -148,8 +148,10 @@ Set `type = "bitbucket-cloud"`.
 
 ## Bitbucket Server and Data Center (experimental)
 
-Set `type = "bitbucket-server"` and `url` to the server's base URL. Same status
-as Bitbucket Cloud.
+Set `type = "bitbucket-server"` and `url` to the server's base URL. Unlike
+Bitbucket Cloud, it has not been checked against a real server. It shares the
+model of Cloud: the token is sent as a bearer token, and webhooks are per repo
+and signed with `X-Hub-Signature`.
 
 - **Token:** an HTTP access token with project read and repository admin, since
   webhooks need it.

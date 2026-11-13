@@ -5,7 +5,9 @@
 Branches and tags, force-pushed and pruned so GitHub equals the source. On top of
 that, where the git server provides them: description, website, topics, default
 branch, visibility and the archived flag. Each of these can be turned off in
-`[sync]` or per repository in `repos.toml`.
+`[sync]`. Per repository, `repos.toml` can turn off tags and the metadata
+(description, website and topics), keep the copy private, and keep branches that
+exist only on GitHub (`prune = false`).
 
 Pull requests, issues, wikis, releases, LFS objects, stars and settings such as
 branch protection are not copied. Refs other than branches and tags, such as a
@@ -66,9 +68,10 @@ what make pushes arrive in 2 to 5 seconds.
 
 ## How much load does the poll put on my git server?
 
-One listing per account every `poll_interval` seconds, about 3 KB per repository.
-gitsync hashes each page and stops early when nothing changed, so an idle poll is a
-few milliseconds of work on the server. Raise `poll_interval` if you have many
+One listing per account every `poll_interval` seconds. Every page of the listing
+is still requested each time; gitsync hashes each page and, when it has not
+changed, skips decoding it again, which saves work on gitsync's side, not on the
+server's. An idle poll is a handful of small API requests. Raise `poll_interval` if you have many
 accounts or a slow server.
 
 ## Can I mirror to GitHub Enterprise Server?

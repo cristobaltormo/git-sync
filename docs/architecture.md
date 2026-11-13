@@ -19,12 +19,12 @@ thin binary on top of it.
 | `src/main.rs` | entry point |
 | `src/cli` | the commands (run, sync, check, status, repos, why, plan, report, config, hooks, init, install), flag parsing, signals and the selector |
 | `src/config` | `config.toml` and `repos.toml`: defaults, validation, secrets from files and environment, edits that keep comments and file ownership |
-| `src/forge` | one provider per git server behind the `Provider` trait: `gitea.rs` (Forgejo, Codeberg, Gitea, Gogs), `gitlab.rs`, `gitbucket.rs`, `onedev.rs`, `bitbucket.rs` |
+| `src/forge` | one provider per git server behind the `Provider` trait: `gitea.rs` (Forgejo, Codeberg, Gitea, Gogs), `gitlab.rs`, `gitbucket.rs`, `onedev.rs`, `bitbucket.rs`; `mod.rs` holds the listing page cache |
 | `src/github.rs` | the GitHub API client |
 | `src/mirror` | the git commands that copy branches and tags, and how a stalled one is stopped on Unix and on Windows |
 | `src/engine` | state, queue, poll, the decision of what to do for each repo, renames, removals, webhook setup, notifications, pull requests |
 | `src/webhook.rs` | the HTTP listener, which hands events to the engine |
-| `src/httpx.rs` | HTTP client with retries, rate limit handling, redirects, proxies, TLS roots and the listing page cache |
+| `src/httpx.rs` | HTTP client with retries, rate limit handling, redirects, proxies and TLS roots |
 | `src/logx.rs` | logging that never prints a secret |
 | `src/error.rs` | the error type; configuration errors end with exit code 2 |
 | `src/version.rs` | the version string, set at build time |
