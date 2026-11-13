@@ -13,20 +13,46 @@ knows is kept in one JSON state file.
                                                             +--> GitHub API (settings)
 ```
 
-## Packages
+## Modules
 
-| Package | Role |
+gitsync is written in Rust as one crate: a library with the whole program and a
+thin binary on top of it.
+
+| Module | Role |
 |---|---|
-| `cmd/gitsync` | entry point |
-| `internal/cli` | the commands: run, sync, check, status, hooks, init, install |
-| `internal/config` | the TOML file, defaults, validation, secrets from files and environment |
-| `internal/forge` | one provider per git server behind a single interface |
-| `internal/github` | the GitHub API client |
-| `internal/mirror` | the git commands that copy branches and tags |
-| `internal/engine` | state, queue, the decision of what to do for each repo |
-| `internal/webhook` | the HTTP listener, which hands events to the engine |
-| `internal/httpx` | HTTP client with retries and rate limit handling |
-| `internal/logx` | logging that never prints a secret |
+| `src/main.rs` | entry point |
+| `src/cli` | the commands (run, sync, check, status, repos, why, plan, report, config, hooks, init, install), flag parsing, signals and the selector |
+| `src/config` | `config.toml` and `repos.toml`: defaults, validation, secrets from files and environment, edits that keep comments and file ownership |
+| `src/forge` | one provider per git server behind the `Provider` trait: `gitea.rs` (Forgejo, Codeberg, Gitea, Gogs), `gitlab.rs`, `gitbucket.rs`, `onedev.rs`, `bitbucket.rs` |
+| `src/github.rs` | the GitHub API client |
+| `src/mirror` | the git commands that copy branches and tags, and how a stalled one is stopped on Unix and on Windows |
+| `src/engine` | state, queue, poll, the decision of what to do for each repo, renames, removals, webhook setup, notifications, pull requests |
+| `src/webhook.rs` | the HTTP listener, which hands events to the engine |
+| `src/httpx.rs` | HTTP client with retries, rate limit handling, redirects, proxies, TLS roots and the listing page cache |
+| `src/logx.rs` | logging that never prints a secret |
+| `src/error.rs` | the error type; configuration errors end with exit code 2 |
+| `src/version.rs` | the version string, set at build time |
+
+## Threads
+
+There is no async runtime. The daemon runs a few plain threads with small stacks,
+each blocked on a condition variable or a read until there is work:
+
+- the main thread, which waits for signals and reloads the config on `SIGHUP`;
+- the webhook listener, plus one short-lived thread per connection, capped at 256
+  at a time, with limits on header size, body size and time;
+- the poller;
+- `sync.workers` workers that take jobs from the queue;
+- a short-lived thread for each notification, only when `[notify]` is set.
+
+Each git command gets a watchdog and readers for its output. HTTP goes through one
+shared [ureq](https://github.com/algesten/ureq) agent with connection reuse and
+[rustls](https://github.com/rustls/rustls), so the binary needs no OpenSSL. It
+trusts the system certificates and falls back to a bundled set when there are none,
+as in a `scratch` container.
+
+A panic while syncing one repo is caught and recorded as that repo's error, the
+same as any other failure. The worker carries on with the next job.
 
 ## The poll
 

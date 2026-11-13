@@ -15,31 +15,33 @@ on GitHub.
 ## Building and testing
 
 ```
-make test      # go vet and go test -race
+make test      # cargo fmt --check, cargo clippy -D warnings, cargo test
 make build
 ```
 
-Go 1.24 or newer. The tests use fake servers and need no network. A change is not
-done until `make test` passes.
+A current stable Rust toolchain and `git`. The tests use fake servers on
+127.0.0.1 and need no network. A change is not done until `make test` passes.
 
 ## Adding a git server
 
-A server is a type in `internal/forge` that implements `forge.Provider`:
+A server is a type in `src/forge` that implements the `Source` and `Provider`
+traits:
 
-- `List(owner)` and `Get(owner, name)` map the server's repos to `forge.Repo`. Leave
-  a field empty when the API has no equivalent (`Updated`, `DefaultBranch`), the
-  engine copes with that.
-- `CloneURL` and `GitHeader` say how git reaches the repo over HTTP.
-- `ParseWebhook` verifies the signature or token of an incoming webhook and returns
-  the repo it is about, or `nil` for events that do not matter.
-- `Hooks` creates and removes webhooks. Return `nil` if the server has none.
+- `list(owner)` and `get(owner, name)` map the server's repos to `forge::Repo`.
+  Leave a field empty when the API has no equivalent (`updated`,
+  `default_branch`), the engine copes with that.
+- `clone_url` and `git_header` say how git reaches the repo over HTTP.
+- `parse_webhook` verifies the signature or token of an incoming webhook and
+  returns the repo it is about, or nothing for events that do not matter.
+- `hooks` creates and removes webhooks. Return `None` if the server has none.
 
-Register the type in `forge.New` and in `config.SourceTypes`, add a test file with a
+Register the type in `forge::new` and in `config::SOURCE_TYPES`, add tests with a
 fake server that answers the way the real one does, and describe the server in
 `docs/providers.md`. Say in the pull request how you tested it against a real
 instance; a provider that was not is marked experimental.
 
 ## Style
 
-Small functions, no comments that repeat the code, a comment where a reader could not
-guess why. Commit messages start with a short imperative summary.
+Code formatted with `cargo fmt` and free of clippy warnings. Small functions, no
+comments that repeat the code, a comment where a reader could not guess why.
+Commit messages start with a short imperative summary.

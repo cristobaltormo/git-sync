@@ -11,7 +11,7 @@ in step. A push lands on GitHub within a few seconds. Renaming a repo, making it
 public, changing its description, archiving it or deleting it is picked up just
 as fast.
 
-gitsync is a single static binary. Idle it uses about 11 MB of RAM on Linux and
+gitsync is a single static binary. Idle it uses about 4.5 MB of RAM on Linux and
 next to no CPU, it needs no cron and no runtime, only `git`. It runs on Linux,
 macOS, Windows and in Docker, and its tests run on the three systems on every
 push.
@@ -76,14 +76,23 @@ Invoke-WebRequest https://github.com/cristobaltormo/git-sync/releases/latest/dow
 ```
 
 There are builds for Linux (amd64, arm64, armv7), macOS (Intel and Apple
-silicon) and Windows (amd64 and arm64). To build it yourself you need Go 1.24 or
-newer:
+silicon) and Windows (amd64 and arm64), with a `SHA256SUMS` file to check them
+against. To build it yourself you need a current stable
+[Rust toolchain](https://rustup.rs):
 
 ```
-go install github.com/cristobaltormo/git-sync/cmd/gitsync@latest
+cargo install --locked --git https://github.com/cristobaltormo/git-sync gitsync
 ```
+
+The build bundles a set of root certificates as a fallback for systems without
+any. Distribution packages that rely on the system store can leave it out with
+`cargo build --release --no-default-features`.
 
 `git` 2.32 or newer has to be installed on the machine ([Git for Windows](https://gitforwindows.org) on Windows).
+
+Upgrading from 1.x is a matter of replacing the binary: version 2.0 reads the same
+`config.toml`, `repos.toml` and `state.json`, and 1.3.0 still reads them after 2.0
+has written them, so going back is the same swap. See [CHANGELOG.md](CHANGELOG.md).
 
 ## Set it up
 
@@ -236,7 +245,7 @@ docker run -d --name gitsync --restart unless-stopped \
   ghcr.io/cristobaltormo/git-sync:latest
 ```
 
-Pin a version with a tag, e.g. `ghcr.io/cristobaltormo/git-sync:v1.0.1`. To build
+Pin a version with a tag, e.g. `ghcr.io/cristobaltormo/git-sync:v2.0.0`. To build
 it yourself instead, from a clone of this repository:
 
 ```
@@ -274,9 +283,9 @@ when they change; `kill -HUP` forces it.
 
 ## Resource use
 
-Idle: around 11 MB of RAM, about 10 ms of CPU per minute with 20 repos, one HTTP
-request every `poll_interval` seconds. Syncing is where `git` uses memory, and it
-is told to keep it low. The systemd unit has a hard cap of 512 MB that you can
+Idle: around 4.5 MB of RAM, about 15 ms of CPU per minute with 30 repos in three
+accounts, one listing per account every `poll_interval` seconds. Syncing is where
+`git` uses memory, and it is told to keep it low. The systemd unit has a hard cap of 512 MB that you can
 change. Numbers and method are in [docs/benchmarks.md](docs/benchmarks.md).
 
 State is one small JSON file plus a bare mirror of each repo under
@@ -301,10 +310,15 @@ received.
 ## Development
 
 ```
-make test      # go vet and go test -race
-make build
-make release   # cross-compiled binaries and checksums in dist/
+make test      # cargo fmt --check, cargo clippy and cargo test
+make build     # release build, copied to ./gitsync
+make release   # binaries for every platform and checksums in dist/
 ```
+
+`make release` cross-compiles the Linux binaries with
+[cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild) and needs a macOS
+and a Windows machine for the others; the release workflow builds each one on its
+own runner. `make platform PLATFORM=linux-arm64` builds a single one.
 
 See [docs/architecture.md](docs/architecture.md) for how it is put together and
 [CONTRIBUTING.md](CONTRIBUTING.md) for adding a server.

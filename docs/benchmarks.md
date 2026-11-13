@@ -4,6 +4,9 @@ Rough measurements, to see where gitsync stands and what it costs to run. One ma
 one home network and a few runs each, so read them as orders of magnitude and not as a
 scoreboard.
 
+The figures below were taken with gitsync 1.x, written in Go. The section
+[Rust 2.0](#rust-20) compares the rewrite against them.
+
 Everything ran on a mini PC (Ryzen 7 7730U) in Debian 13 containers: each git server,
 gitsync and the test scripts on the same host, talking to github.com over a home fibre
 connection.
@@ -75,3 +78,48 @@ connection: it kills it and tries again, up to three times. A large transfer kee
 reporting progress, so it is never cut. That turned the 95-second pauses into 15 to 20
 seconds. Measuring latency against GitHub with aggressive polling gives worse numbers than
 real use, which is why the scripts here poll every half second or slower.
+
+## Rust 2.0
+
+gitsync 2.0 is a rewrite in Rust with the same behaviour. The tables above stay as
+the reference; this section measures 2.0 against 1.3.0 on the same machine.
+
+Both versions ran one after the other on the same mini PC, in a Debian 13 container,
+against the same Forgejo source (three accounts, 32 repos, 30 of them synced and two
+ignored) and the same GitHub target. Each binary had its own copy of the same
+`config.toml`, `repos.toml` and `state.json`, with `sync.dry_run = true`,
+`hooks.mode = "none"`, a 5 second poll and two workers, so they read the same data and
+did the same work without writing anything. Each daemon was given 20 seconds to settle
+and then sampled for 120 seconds. 1.3.0 is the release binary; 2.0 is the static musl
+build.
+
+| | 1.3.0 (Go) | 2.0 (Rust) |
+|---|---|---|
+| Binary size, Linux amd64 | 7.3 MiB | 3.2 MiB |
+| Memory, steady (VmRSS) | 11.8 MiB | 4.3 MiB |
+| Memory, peak incl. the startup burst of 30 jobs (VmHWM) | 11.9 MiB | 4.5 MiB |
+| Threads | 6 to 7 | 5 |
+| CPU while polling, ms per minute | 26.5 | 15.1 |
+| CPU over the first 140 s, startup included | 110 ms | 60 ms |
+| `gitsync version`, median of 20 | 4.5 ms | 2.5 ms |
+| `gitsync status`, median of 20 | 6.6 ms | 4.1 ms |
+| `gitsync repos list`, median of 20 | 159 ms | 154 ms |
+| `gitsync plan`, median of 10 | 171 ms | 148 ms |
+| Exit after SIGTERM | 7 ms | 3 ms |
+
+How to read it:
+
+- Memory is the clearest change: about a third of what 1.3.0 needed, and the startup
+  burst barely moves it.
+- Idle CPU is lower too, but both are small. These figures are the gitsync process alone
+  (`/proc` schedstat), with three accounts to poll, so they are not comparable with the
+  cgroup figures in the first table.
+- Commands that only read local files finish about 40 % sooner. `repos list` and
+  `plan` spend most of their time waiting on the servers, so the gap there is 5 to
+  25 ms.
+- Both versions queued the same 6 changed repos and 24 due verifications, their logs
+  matched line for line, and a `state.json` written by 2.0 is byte for byte the one
+  1.3.0 writes, so upgrading and going back are both a binary swap.
+- The runtime figures were taken with a 2.0 build optimised for speed, 4.0 MiB on
+  disk. Release builds are now optimised for size and come to 3.2 MiB; that build was
+  not measured again.

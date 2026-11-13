@@ -11,7 +11,7 @@ día. Un push llega a GitHub en pocos segundos. Renombrar un repo, hacerlo
 público, cambiar su descripción, archivarlo o borrarlo también se detecta igual
 de rápido.
 
-gitsync es un único binario estático. En reposo usa unos 11 MB de RAM en Linux y
+gitsync es un único binario estático. En reposo usa unos 4,5 MB de RAM en Linux y
 casi nada de CPU, no necesita cron ni runtime, solo `git`. Funciona en Linux,
 macOS, Windows y Docker, y sus tests se ejecutan en los tres sistemas en cada
 push.
@@ -77,13 +77,24 @@ Invoke-WebRequest https://github.com/cristobaltormo/git-sync/releases/latest/dow
 ```
 
 Hay binarios para Linux (amd64, arm64, armv7), macOS (Intel y Apple silicon) y
-Windows (amd64 y arm64). Para compilarlo tú necesitas Go 1.24 o posterior:
+Windows (amd64 y arm64), con un fichero `SHA256SUMS` para comprobarlos. Para
+compilarlo tú necesitas una versión estable reciente de
+[Rust](https://rustup.rs):
 
 ```
-go install github.com/cristobaltormo/git-sync/cmd/gitsync@latest
+cargo install --locked --git https://github.com/cristobaltormo/git-sync gitsync
 ```
+
+El binario incluye un juego de certificados raíz por si el sistema no tiene
+ninguno. Los paquetes de distribución que usan los del sistema pueden quitarlo
+con `cargo build --release --no-default-features`.
 
 Hace falta `git` 2.32 o posterior en el equipo ([Git para Windows](https://gitforwindows.org) en Windows).
+
+Para actualizar desde 1.x basta con cambiar el binario: la versión 2.0 lee los
+mismos `config.toml`, `repos.toml` y `state.json`, y la 1.3.0 los sigue leyendo
+después de que la 2.0 los haya escrito, así que volver atrás es el mismo cambio.
+Mira [CHANGELOG.md](CHANGELOG.md).
 
 ## Puesta en marcha
 
@@ -244,7 +255,7 @@ docker run -d --name gitsync --restart unless-stopped \
 ```
 
 Para fijar una versión, usa su etiqueta, por ejemplo
-`ghcr.io/cristobaltormo/git-sync:v1.0.1`. Para construirla tú mismo en su lugar,
+`ghcr.io/cristobaltormo/git-sync:v2.0.0`. Para construirla tú mismo en su lugar,
 desde un clon de este repositorio:
 
 ```
@@ -283,9 +294,9 @@ cuando cambian; `kill -HUP` lo fuerza.
 
 ## Uso de recursos
 
-En reposo: alrededor de 11 MB de RAM, unos 10 ms de CPU por minuto con 20 repos y
-una petición HTTP cada `poll_interval` segundos. Sincronizar es cuando `git` usa
-memoria, y está configurado para que use poca. La unidad de systemd tiene un
+En reposo: alrededor de 4,5 MB de RAM, unos 15 ms de CPU por minuto con 30 repos
+en tres cuentas y un listado por cuenta cada `poll_interval` segundos. Sincronizar
+es cuando `git` usa memoria, y está configurado para que use poca. La unidad de systemd tiene un
 límite duro de 512 MB que puedes cambiar. Las cifras y el método están en
 [docs/benchmarks.md](docs/benchmarks.md).
 
@@ -314,10 +325,15 @@ registra cada webhook recibido.
 ## Desarrollo
 
 ```
-make test      # go vet y go test -race
-make build
-make release   # binarios compilados para cada sistema y sumas de control en dist/
+make test      # cargo fmt --check, cargo clippy y cargo test
+make build     # compilación de release, copiada a ./gitsync
+make release   # binarios para cada sistema y sumas de control en dist/
 ```
+
+`make release` compila los binarios de Linux con
+[cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild) y necesita un Mac y
+un equipo con Windows para los demás; el workflow de release compila cada uno en
+su propio runner. `make platform PLATFORM=linux-arm64` compila uno solo.
 
 Mira [docs/architecture.md](docs/architecture.md) para saber cómo está montado y
 [CONTRIBUTING.md](CONTRIBUTING.md) para añadir un servidor.
