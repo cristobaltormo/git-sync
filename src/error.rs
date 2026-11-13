@@ -90,6 +90,7 @@ macro_rules! err {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
     #[test]
     fn io_messages_read_like_go() {
         let e = io::Error::from_raw_os_error(2);

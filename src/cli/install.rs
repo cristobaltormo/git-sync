@@ -1,3 +1,5 @@
+#![cfg_attr(not(any(target_os = "linux", windows)), allow(dead_code))]
+
 use std::path::Path;
 use std::process::Command;
 

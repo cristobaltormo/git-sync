@@ -174,10 +174,13 @@ fn secrets_from_file_and_environment() {
         1,
     );
     let err = load(&write(&d, &missing)).err().unwrap().to_string();
-    assert_eq!(
-        err,
-        "cannot read /nonexistent/tok: no such file or directory"
-    );
+    assert!(err.starts_with("cannot read /nonexistent/tok: "));
+    if cfg!(unix) {
+        assert_eq!(
+            err,
+            "cannot read /nonexistent/tok: no such file or directory"
+        );
+    }
 }
 
 #[test]
@@ -247,7 +250,10 @@ fn repos_file_sits_next_to_the_config() {
     assert_eq!(PathBuf::from(repos_path(&c)), d.path().join("repos.toml"));
     let mut c = Config::default();
     c.paths.state_dir = "/var/lib/gitsync".into();
-    assert_eq!(repos_path(&c), "/var/lib/gitsync/repos.toml");
+    assert_eq!(
+        PathBuf::from(repos_path(&c)),
+        PathBuf::from("/var/lib/gitsync").join("repos.toml")
+    );
 }
 
 fn repos_file(dir: &TempDir) -> String {

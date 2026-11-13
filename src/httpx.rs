@@ -5,7 +5,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 use ureq::http::{self, HeaderMap, HeaderName, HeaderValue, Method, Uri};
-#[cfg(any(test, not(any(windows, target_os = "macos"))))]
+#[cfg(any(all(test, unix), not(any(windows, target_os = "macos"))))]
 use ureq::tls::PemItem;
 use ureq::tls::{Certificate, RootCerts, TlsConfig};
 
@@ -190,7 +190,7 @@ fn system_roots() -> Vec<Certificate<'static>> {
     certs
 }
 
-#[cfg(any(test, not(any(windows, target_os = "macos"))))]
+#[cfg(any(all(test, unix), not(any(windows, target_os = "macos"))))]
 pub(crate) fn load_roots(
     env: &dyn Fn(&str) -> Option<String>,
     files: &[&str],
@@ -218,7 +218,7 @@ pub(crate) fn load_roots(
     certs
 }
 
-#[cfg(any(test, not(any(windows, target_os = "macos"))))]
+#[cfg(any(all(test, unix), not(any(windows, target_os = "macos"))))]
 fn dir_certs(dir: &str, out: &mut Vec<Certificate<'static>>) {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return;
@@ -233,7 +233,7 @@ fn dir_certs(dir: &str, out: &mut Vec<Certificate<'static>>) {
     }
 }
 
-#[cfg(any(test, not(any(windows, target_os = "macos"))))]
+#[cfg(any(all(test, unix), not(any(windows, target_os = "macos"))))]
 fn pem_certs(data: &[u8], out: &mut Vec<Certificate<'static>>) {
     for item in ureq::tls::parse_pem(data).flatten() {
         if let PemItem::Certificate(c) = item {
@@ -1003,6 +1003,7 @@ mod tests {
         assert!(!use_proxy(&parse_no_proxy("*"), "github.com", 443));
     }
 
+    #[cfg(unix)]
     #[test]
     fn system_roots_are_loaded_before_the_bundled_ones() {
         let d = crate::testutil::TempDir::new();
