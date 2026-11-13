@@ -5,23 +5,76 @@ on:
 permissions:
   contents: write
   packages: write
+env:
+  CARGO_TERM_COLOR: always
 jobs:
-  release:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+          components: clippy, rustfmt
       - run: make test
-      - run: make release
-      - run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes
+
+  build:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux-amd64, target: x86_64-unknown-linux-musl, os: ubuntu-latest, zig: true }
+          - { platform: linux-arm64, target: aarch64-unknown-linux-musl, os: ubuntu-latest, zig: true }
+          - { platform: linux-armv7, target: armv7-unknown-linux-musleabihf, os: ubuntu-latest, zig: true }
+          - { platform: darwin-amd64, target: x86_64-apple-darwin, os: macos-latest }
+          - { platform: darwin-arm64, target: aarch64-apple-darwin, os: macos-latest }
+          - { platform: windows-amd64, target: x86_64-pc-windows-msvc, os: windows-latest, exe: .exe }
+          - { platform: windows-arm64, target: aarch64-pc-windows-msvc, os: windows-latest, exe: .exe }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - if: matrix.zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
+      - if: matrix.zig
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+      - name: Build
+        shell: bash
+        env:
+          GITSYNC_VERSION: ${{ github.ref_name }}
+        run: |
+          if [ "${{ matrix.zig }}" = true ]; then build="cargo zigbuild"; else build="cargo build"; fi
+          $build --release --locked --target ${{ matrix.target }}
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/gitsync${{ matrix.exe }} dist/gitsync-${{ matrix.platform }}${{ matrix.exe }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gitsync-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gitsync-*
+          path: dist
+          merge-multiple: true
+      - run: cd dist && sha256sum gitsync-* > SHA256SUMS
+      - run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
 
   image:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       packages: write

@@ -1,11 +1,12 @@
-FROM golang:1.26-alpine AS build
+FROM rust:1-alpine AS build
+RUN apk add --no-cache gcc musl-dev
 WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-COPY cmd ./cmd
-COPY internal ./internal
+COPY Cargo.toml Cargo.lock build.rs ./
+COPY src ./src
 ARG VERSION=dev
-RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o /gitsync ./cmd/gitsync
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    GITSYNC_VERSION=${VERSION} cargo build --release --locked \
+ && cp target/release/gitsync /gitsync
 
 FROM alpine:3.22
 RUN apk add --no-cache git ca-certificates \

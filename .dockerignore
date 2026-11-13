@@ -1,5 +1,9 @@
 .git
+.github
+target
 dist
+docs
+examples
+tests
 *.md
 !README.md
-compose.yaml
