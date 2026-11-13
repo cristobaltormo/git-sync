@@ -168,8 +168,8 @@ whole and the previous settings stay active.
 Nothing here runs unless you use it. `gitsync repos` is a separate process that
 exists only while the selector is open. The daemon adds two `stat` calls per poll.
 Pull request lookups happen at most once per `verify_interval` and only when
-enabled. The selector is built on the standard library and
-[crossterm](https://github.com/crossterm-rs/crossterm).
+enabled. The selector talks to the terminal directly through termios on Linux and
+macOS, and through [crossterm](https://github.com/crossterm-rs/crossterm) on Windows.
 
 ## Commands
 

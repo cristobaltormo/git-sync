@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do that is hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you have in mind
+      description: How it could work, including the config keys or commands you imagine.
+  - type: input
+    id: server
+    attributes:
+      label: Git server
+      description: If it is about one server, which one and which version.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered

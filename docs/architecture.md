@@ -4,14 +4,10 @@ gitsync is one process with three moving parts: a webhook listener, a poller and
 small pool of workers. They share a queue of repos to sync, and everything it
 knows is kept in one JSON state file.
 
-```
-  git server --- webhook ------> listener --+
-       ^                                    |
-       |                                    v
-       +--- listing every 5 s --- poller --> queue --> workers --> git fetch, git push --> GitHub
-                                                            |
-                                                            +--> GitHub API (settings)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/architecture-dark.svg">
+  <img src="images/architecture.svg" alt="The git server feeds a webhook listener and a poller, both queue jobs, workers fetch from the git server, push to GitHub and apply settings through the GitHub API, and keep their state in state.json">
+</picture>
 
 ## Modules
 
